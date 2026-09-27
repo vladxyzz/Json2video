@@ -1,0 +1,29 @@
+{
+  "name": "Small steps. Big ideas.",
+  "resolution": "hd",
+  "aspect-ratio": "9:16",
+  "fps": 30,
+  "variables": { "brand": "YOUR STUDIO" },
+  "client-data": { "sheet_row": 42 },
+  "scenes": [
+    {
+      "name": "Opening",
+      "duration": 6,
+      "background-color": "#c6f36b",
+      "elements": [
+        { "type": "text", "text": "{{brand}}", "font-size": 26, "color": "#182019", "y": 170 },
+        { "type": "text", "text": "Small steps.\nBig ideas.", "font-size": 82, "color": "#182019" },
+        { "type": "voice", "provider": "local", "language": "en-US", "text": "Every great idea starts with a small step. Make yours today." }
+      ]
+    },
+    {
+      "name": "Closing",
+      "duration": 6,
+      "background-color": "#20282c",
+      "elements": [
+        { "type": "text", "text": "Create.\nShare.\nRepeat.", "font-size": 90, "color": "#c6f36b" },
+        { "type": "voice", "provider": "local", "language": "en-US", "text": "Turn your ideas into stories. Create, share, and keep moving forward." }
+      ]
+    }
+  ]
+}

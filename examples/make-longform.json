@@ -1,0 +1,354 @@
+{
+  "id": "q5jn4w33",
+  "comment": "AI Automated Longform Video Template",
+  "resolution": "full-hd",
+  "quality": "high",
+  "scenes": [
+    {
+      "id": "qq7w3xq1",
+      "comment": "Intro Scene",
+      "elements": [
+        {
+          "id": "q80aeswj",
+          "type": "video",
+          "src": "{{intro_video}}",
+          "duration": 4,
+          "width": 1920,
+          "height": 1080,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "id": "quxv7l8n",
+          "type": "text",
+          "text": "{{title}}",
+          "font-size": "48px",
+          "color": "#FFFFFF",
+          "x": "center",
+          "y": "center",
+          "style": "shadow"
+        }
+      ]
+    },
+    {
+      "id": "qmiml2o6",
+      "comment": "Scene 1",
+      "elements": [
+        {
+          "id": "qx999y8u",
+          "type": "image",
+          "prompt": "{{scene_1_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qzboxfk3",
+          "type": "voice",
+          "text": "{{scene_1_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "qql49fg3",
+          "type": "subtitles",
+          "text": "{{scene_1_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "qg9y28xg",
+      "comment": "Scene 2",
+      "elements": [
+        {
+          "id": "qvfzkshg",
+          "type": "image",
+          "prompt": "{{scene_2_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qnqoy0js",
+          "type": "voice",
+          "text": "{{scene_2_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "qbod3op5",
+          "type": "subtitles",
+          "text": "{{scene_2_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "q3lsc7sh",
+      "comment": "Scene 3",
+      "elements": [
+        {
+          "id": "qvuyyu21",
+          "type": "image",
+          "prompt": "{{scene_3_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qb1wrs98",
+          "type": "voice",
+          "text": "{{scene_3_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "qjuvwls9",
+          "type": "subtitles",
+          "text": "{{scene_3_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "qh057wav",
+      "comment": "Scene 4",
+      "elements": [
+        {
+          "id": "qv86sunl",
+          "type": "image",
+          "prompt": "{{scene_4_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qvc0offk",
+          "type": "voice",
+          "text": "{{scene_4_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "qsnmi9wa",
+          "type": "subtitles",
+          "text": "{{scene_4_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "qq2xtozo",
+      "comment": "Scene 5",
+      "elements": [
+        {
+          "id": "qdtooau2",
+          "type": "image",
+          "prompt": "{{scene_5_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qjnteiti",
+          "type": "voice",
+          "text": "{{scene_5_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "q82o5rps",
+          "type": "subtitles",
+          "text": "{{scene_5_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "qqk4kg12",
+      "comment": "Scene 6",
+      "elements": [
+        {
+          "id": "qkrx351y",
+          "type": "image",
+          "prompt": "{{scene_6_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "q0ifxy6z",
+          "type": "voice",
+          "text": "{{scene_6_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "q1dim5qa",
+          "type": "subtitles",
+          "text": "{{scene_6_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "qzb7mvyr",
+      "comment": "Scene 7",
+      "elements": [
+        {
+          "id": "q2m5rips",
+          "type": "image",
+          "prompt": "{{scene_7_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qmvixbkc",
+          "type": "voice",
+          "text": "{{scene_7_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "qey4g8af",
+          "type": "subtitles",
+          "text": "{{scene_7_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "qilu4fku",
+      "comment": "Scene 8",
+      "elements": [
+        {
+          "id": "qtxki2up",
+          "type": "image",
+          "prompt": "{{scene_8_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qwtpod7z",
+          "type": "voice",
+          "text": "{{scene_8_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "q5nfsnyz",
+          "type": "subtitles",
+          "text": "{{scene_8_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "q4mbbneh",
+      "comment": "Scene 9",
+      "elements": [
+        {
+          "id": "q91ym5q3",
+          "type": "image",
+          "prompt": "{{scene_9_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qemi6ihz",
+          "type": "voice",
+          "text": "{{scene_9_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "qvstprnl",
+          "type": "subtitles",
+          "text": "{{scene_9_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    },
+    {
+      "id": "qy3rogmz",
+      "comment": "Scene 10",
+      "elements": [
+        {
+          "id": "q7yi8ohf",
+          "type": "image",
+          "prompt": "{{scene_10_prompt}}",
+          "model": "{{image_model}}",
+          "width": 1920,
+          "height": 1080,
+          "zoom": 10,
+          "fade-in": 0.5,
+          "fade-out": 0.5
+        },
+        {
+          "id": "qajegd8c",
+          "type": "voice",
+          "text": "{{scene_10_voice}}",
+          "voice": "{{voice}}"
+        },
+        {
+          "id": "qj1195hk",
+          "type": "subtitles",
+          "text": "{{scene_10_voice}}",
+          "font-size": "34px",
+          "color": "#FFFFFF",
+          "y": "85%"
+        }
+      ]
+    }
+  ],
+  "elements": [
+    {
+      "id": "qadjsrm6",
+      "type": "audio",
+      "src": "{{bg_music}}",
+      "volume": 0.15,
+      "fade-in": 1,
+      "fade-out": 2
+    }
+  ]
+}

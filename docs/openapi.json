@@ -1,0 +1,1834 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Json2vid Studio",
+    "version": "1.1.0",
+    "description": "Independent JSON-to-MP4 API. Partial JSON2Video-style schema, built-in Make template, FLUX 1.1 Pro images, Azure speech-aligned subtitles. Automatic or explicit scene durations; <=900 seconds total. See README for limits."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development. Configure a public HTTPS origin for Make."
+    }
+  ],
+  "security": [
+    {
+      "ApiKey": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    },
+    "schemas": {
+      "Movie": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "name": {
+            "default": "Video fără titlu",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "quality": {
+            "default": "high",
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "resolution": {
+            "default": "hd",
+            "type": "string",
+            "enum": [
+              "full-hd",
+              "hd",
+              "sd"
+            ]
+          },
+          "aspect-ratio": {
+            "default": "16:9",
+            "type": "string",
+            "enum": [
+              "9:16",
+              "16:9",
+              "1:1"
+            ]
+          },
+          "fps": {
+            "default": 30,
+            "anyOf": [
+              {
+                "type": "number",
+                "const": 24
+              },
+              {
+                "type": "number",
+                "const": 25
+              },
+              {
+                "type": "number",
+                "const": 30
+              }
+            ]
+          },
+          "variables": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            }
+          },
+          "client-data": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "webhook_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "scenes": {
+            "minItems": 1,
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "comment": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "name": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "duration": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "minimum": 0.25,
+                      "maximum": 300
+                    },
+                    {
+                      "type": "number",
+                      "const": -1
+                    }
+                  ]
+                },
+                "background-color": {
+                  "default": "#151820",
+                  "type": "string",
+                  "pattern": "^#[0-9a-fA-F]{6}$"
+                },
+                "elements": {
+                  "default": [],
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "text"
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 2000
+                          },
+                          "id": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "comment": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "start": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "duration": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "maximum": 900
+                              },
+                              {
+                                "type": "number",
+                                "const": -1
+                              },
+                              {
+                                "type": "number",
+                                "const": -2
+                              }
+                            ]
+                          },
+                          "fade-in": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "fade-out": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "x": {
+                            "default": "center",
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1920,
+                                "maximum": 1920
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "left",
+                                  "center",
+                                  "right",
+                                  "top",
+                                  "bottom"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 16,
+                                "pattern": "^-?\\d+(\\.\\d+)?(px|%)$"
+                              }
+                            ]
+                          },
+                          "y": {
+                            "default": "center",
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1920,
+                                "maximum": 1920
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "left",
+                                  "center",
+                                  "right",
+                                  "top",
+                                  "bottom"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 16,
+                                "pattern": "^-?\\d+(\\.\\d+)?(px|%)$"
+                              }
+                            ]
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 16,
+                            "maximum": 1920
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": 16,
+                            "maximum": 1920
+                          },
+                          "font-size": {
+                            "default": 64,
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": 12,
+                                "maximum": 250
+                              },
+                              {
+                                "type": "string",
+                                "pattern": "^\\d+(\\.\\d+)?px$"
+                              }
+                            ]
+                          },
+                          "style": {
+                            "default": "plain",
+                            "type": "string",
+                            "enum": [
+                              "plain",
+                              "shadow"
+                            ]
+                          },
+                          "color": {
+                            "default": "#ffffff",
+                            "type": "string",
+                            "pattern": "^#[0-9a-fA-F]{6}$"
+                          },
+                          "font-weight": {
+                            "default": "bold",
+                            "type": "string",
+                            "enum": [
+                              "normal",
+                              "bold"
+                            ]
+                          },
+                          "text-align": {
+                            "default": "center",
+                            "type": "string",
+                            "enum": [
+                              "left",
+                              "center",
+                              "right"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "text",
+                          "start",
+                          "fade-in",
+                          "fade-out",
+                          "x",
+                          "y",
+                          "font-size",
+                          "style",
+                          "color",
+                          "font-weight",
+                          "text-align"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "image"
+                          },
+                          "src": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "prompt": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 10000
+                          },
+                          "model": {
+                            "type": "string",
+                            "enum": [
+                              "flux-pro",
+                              "flux-pro-1.1"
+                            ]
+                          },
+                          "zoom": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": -10,
+                            "maximum": 10
+                          },
+                          "id": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "comment": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "start": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "duration": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "maximum": 900
+                              },
+                              {
+                                "type": "number",
+                                "const": -1
+                              },
+                              {
+                                "type": "number",
+                                "const": -2
+                              }
+                            ]
+                          },
+                          "fade-in": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "fade-out": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "x": {
+                            "default": "center",
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1920,
+                                "maximum": 1920
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "left",
+                                  "center",
+                                  "right",
+                                  "top",
+                                  "bottom"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 16,
+                                "pattern": "^-?\\d+(\\.\\d+)?(px|%)$"
+                              }
+                            ]
+                          },
+                          "y": {
+                            "default": "center",
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1920,
+                                "maximum": 1920
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "left",
+                                  "center",
+                                  "right",
+                                  "top",
+                                  "bottom"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 16,
+                                "pattern": "^-?\\d+(\\.\\d+)?(px|%)$"
+                              }
+                            ]
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 16,
+                            "maximum": 1920
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": 16,
+                            "maximum": 1920
+                          },
+                          "fit": {
+                            "default": "cover",
+                            "type": "string",
+                            "enum": [
+                              "cover",
+                              "contain"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "zoom",
+                          "start",
+                          "fade-in",
+                          "fade-out",
+                          "x",
+                          "y",
+                          "fit"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "video"
+                          },
+                          "src": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "id": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "comment": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "start": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "duration": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "maximum": 900
+                              },
+                              {
+                                "type": "number",
+                                "const": -1
+                              },
+                              {
+                                "type": "number",
+                                "const": -2
+                              }
+                            ]
+                          },
+                          "fade-in": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "fade-out": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "x": {
+                            "default": "center",
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1920,
+                                "maximum": 1920
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "left",
+                                  "center",
+                                  "right",
+                                  "top",
+                                  "bottom"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 16,
+                                "pattern": "^-?\\d+(\\.\\d+)?(px|%)$"
+                              }
+                            ]
+                          },
+                          "y": {
+                            "default": "center",
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1920,
+                                "maximum": 1920
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "left",
+                                  "center",
+                                  "right",
+                                  "top",
+                                  "bottom"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 16,
+                                "pattern": "^-?\\d+(\\.\\d+)?(px|%)$"
+                              }
+                            ]
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 16,
+                            "maximum": 1920
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": 16,
+                            "maximum": 1920
+                          },
+                          "fit": {
+                            "default": "cover",
+                            "type": "string",
+                            "enum": [
+                              "cover",
+                              "contain"
+                            ]
+                          },
+                          "seek": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "src",
+                          "start",
+                          "fade-in",
+                          "fade-out",
+                          "x",
+                          "y",
+                          "fit",
+                          "seek"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "audio"
+                          },
+                          "src": {
+                            "type": "string",
+                            "format": "uri"
+                          },
+                          "id": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "comment": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "start": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "duration": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "maximum": 900
+                              },
+                              {
+                                "type": "number",
+                                "const": -1
+                              },
+                              {
+                                "type": "number",
+                                "const": -2
+                              }
+                            ]
+                          },
+                          "fade-in": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "fade-out": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "volume": {
+                            "default": 1,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 2
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "src",
+                          "start",
+                          "fade-in",
+                          "fade-out",
+                          "volume"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "voice"
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 5000
+                          },
+                          "id": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "comment": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "start": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "duration": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "maximum": 900
+                              },
+                              {
+                                "type": "number",
+                                "const": -1
+                              },
+                              {
+                                "type": "number",
+                                "const": -2
+                              }
+                            ]
+                          },
+                          "fade-in": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "fade-out": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "provider": {
+                            "default": "local",
+                            "type": "string",
+                            "enum": [
+                              "local",
+                              "azure"
+                            ]
+                          },
+                          "model": {
+                            "type": "string",
+                            "enum": [
+                              "local",
+                              "azure"
+                            ]
+                          },
+                          "voice": {
+                            "default": "en-US-JennyNeural",
+                            "type": "string",
+                            "pattern": "^[a-zA-Z0-9-]+$"
+                          },
+                          "language": {
+                            "default": "en-US",
+                            "type": "string",
+                            "pattern": "^[a-z]{2}-[A-Z]{2}$"
+                          },
+                          "volume": {
+                            "default": 1,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 2
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "text",
+                          "start",
+                          "fade-in",
+                          "fade-out",
+                          "provider",
+                          "voice",
+                          "language",
+                          "volume"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "const": "subtitles"
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 2000
+                          },
+                          "id": {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          "comment": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "start": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "duration": {
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "exclusiveMinimum": 0,
+                                "maximum": 900
+                              },
+                              {
+                                "type": "number",
+                                "const": -1
+                              },
+                              {
+                                "type": "number",
+                                "const": -2
+                              }
+                            ]
+                          },
+                          "fade-in": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "fade-out": {
+                            "default": 0,
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 900
+                          },
+                          "x": {
+                            "default": "center",
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1920,
+                                "maximum": 1920
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "left",
+                                  "center",
+                                  "right",
+                                  "top",
+                                  "bottom"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 16,
+                                "pattern": "^-?\\d+(\\.\\d+)?(px|%)$"
+                              }
+                            ]
+                          },
+                          "y": {
+                            "default": "85%",
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": -1920,
+                                "maximum": 1920
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "left",
+                                  "center",
+                                  "right",
+                                  "top",
+                                  "bottom"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "maxLength": 16,
+                                "pattern": "^-?\\d+(\\.\\d+)?(px|%)$"
+                              }
+                            ]
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 16,
+                            "maximum": 1920
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": 16,
+                            "maximum": 1920
+                          },
+                          "font-size": {
+                            "default": 34,
+                            "anyOf": [
+                              {
+                                "type": "number",
+                                "minimum": 12,
+                                "maximum": 250
+                              },
+                              {
+                                "type": "string",
+                                "pattern": "^\\d+(\\.\\d+)?px$"
+                              }
+                            ]
+                          },
+                          "style": {
+                            "default": "shadow",
+                            "type": "string",
+                            "enum": [
+                              "plain",
+                              "shadow"
+                            ]
+                          },
+                          "color": {
+                            "default": "#ffffff",
+                            "type": "string",
+                            "pattern": "^#[0-9a-fA-F]{6}$"
+                          },
+                          "font-weight": {
+                            "default": "bold",
+                            "type": "string",
+                            "enum": [
+                              "normal",
+                              "bold"
+                            ]
+                          },
+                          "text-align": {
+                            "default": "center",
+                            "type": "string",
+                            "enum": [
+                              "left",
+                              "center",
+                              "right"
+                            ]
+                          },
+                          "timing": {
+                            "default": "speech",
+                            "type": "string",
+                            "enum": [
+                              "speech",
+                              "estimated"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "text",
+                          "start",
+                          "fade-in",
+                          "fade-out",
+                          "x",
+                          "y",
+                          "font-size",
+                          "style",
+                          "color",
+                          "font-weight",
+                          "text-align",
+                          "timing"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "background-color",
+                "elements"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "elements": {
+            "default": [],
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "audio"
+                    },
+                    "src": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "id": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "comment": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "start": {
+                      "default": 0,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 900
+                    },
+                    "duration": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 900
+                        },
+                        {
+                          "type": "number",
+                          "const": -1
+                        },
+                        {
+                          "type": "number",
+                          "const": -2
+                        }
+                      ]
+                    },
+                    "fade-in": {
+                      "default": 0,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 900
+                    },
+                    "fade-out": {
+                      "default": 0,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 900
+                    },
+                    "volume": {
+                      "default": 1,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "src",
+                    "start",
+                    "fade-in",
+                    "fade-out",
+                    "volume"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "voice"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 5000
+                    },
+                    "id": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "comment": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "start": {
+                      "default": 0,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 900
+                    },
+                    "duration": {
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 900
+                        },
+                        {
+                          "type": "number",
+                          "const": -1
+                        },
+                        {
+                          "type": "number",
+                          "const": -2
+                        }
+                      ]
+                    },
+                    "fade-in": {
+                      "default": 0,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 900
+                    },
+                    "fade-out": {
+                      "default": 0,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 900
+                    },
+                    "provider": {
+                      "default": "local",
+                      "type": "string",
+                      "enum": [
+                        "local",
+                        "azure"
+                      ]
+                    },
+                    "model": {
+                      "type": "string",
+                      "enum": [
+                        "local",
+                        "azure"
+                      ]
+                    },
+                    "voice": {
+                      "default": "en-US-JennyNeural",
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9-]+$"
+                    },
+                    "language": {
+                      "default": "en-US",
+                      "type": "string",
+                      "pattern": "^[a-z]{2}-[A-Z]{2}$"
+                    },
+                    "volume": {
+                      "default": 1,
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 2
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "text",
+                    "start",
+                    "fade-in",
+                    "fade-out",
+                    "provider",
+                    "voice",
+                    "language",
+                    "volume"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "quality",
+          "resolution",
+          "aspect-ratio",
+          "fps",
+          "variables",
+          "client-data",
+          "scenes",
+          "elements"
+        ],
+        "additionalProperties": false
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "running",
+              "done",
+              "error"
+            ]
+          },
+          "progress": {
+            "type": "number"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "thumbnail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "client-data": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "duration": {
+            "type": "number"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "webhook": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      },
+      "TemplateRequest": {
+        "type": "object",
+        "required": [
+          "template"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "template": {
+            "type": "string",
+            "enum": [
+              "qbTOTIiERdOb3Ib3grfl"
+            ]
+          },
+          "variables": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "webhook_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "client-data": {
+            "type": "object"
+          },
+          "resolution": {
+            "enum": [
+              "sd",
+              "hd",
+              "full-hd"
+            ]
+          },
+          "aspect-ratio": {
+            "enum": [
+              "9:16",
+              "16:9",
+              "1:1"
+            ]
+          },
+          "fps": {
+            "enum": [
+              24,
+              25,
+              30
+            ]
+          },
+          "quality": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v2/movies": {
+      "post": {
+        "summary": "Queue a render",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Movie"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TemplateRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Same idempotency key reused; returns original project"
+          },
+          "202": {
+            "description": "Queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "project": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "pending"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Get a job or list last 100 jobs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "project",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "movie": {
+                      "$ref": "#/components/schemas/Job"
+                    },
+                    "movies": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Job"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validate": {
+      "post": {
+        "summary": "Validate without rendering",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Movie"
+                  },
+                  {
+                    "$ref": "#/components/schemas/TemplateRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Valid normalized movie"
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/templates": {
+      "get": {
+        "summary": "Read built-in templates and required variables",
+        "responses": {
+          "200": {
+            "description": "Template list"
+          },
+          "401": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/inspect": {
+      "post": {
+        "summary": "Inspect placeholders without interpolating or rendering",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Variables, missing values and media counts"
+          },
+          "422": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/movies/{id}/source": {
+      "get": {
+        "summary": "Read original normalized movie",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Movie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Movie"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/movies/{id}/webhook/retry": {
+      "post": {
+        "summary": "Retry final webhook",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook requeued"
+          },
+          "400": {
+            "description": "Request failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Liveness",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server is responding"
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {
+    "movieCompleted": {
+      "post": {
+        "summary": "At-least-once final job notification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "event": {
+                    "enum": [
+                      "movie.done",
+                      "movie.error"
+                    ]
+                  },
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "project": {
+                    "type": "string"
+                  },
+                  "movie": {
+                    "$ref": "#/components/schemas/Job"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Notification accepted"
+          }
+        }
+      }
+    }
+  }
+}
