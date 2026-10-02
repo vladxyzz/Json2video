@@ -2,3 +2,4 @@ DM Sans: Copyright 2019 The DM Sans Project Authors (https://github.com/googlefo
 IBM Plex Mono: Copyright 2017 IBM Corp. (https://github.com/IBM/plex).
 These fonts are distributed under the SIL Open Font License, Version 1.1.
 See OFL-DM-Sans.txt and OFL-IBM-Plex.txt in this directory.
+Bricolage Grotesque: Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage). SIL OFL 1.1, see OFL-Bricolage.txt.

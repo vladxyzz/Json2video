@@ -42,10 +42,10 @@ test("șablonul original păstrează eroarea intro_video și acceptă cele 25 de
   assert.equal(result.data.scenes[0].elements[1]["font-size"], "48px");
   assert.equal(result.data.elements[0]["fade-out"], 2);
   assert.equal(JSON.stringify(source), before);
-  assert.throws(() => resolveTemplate({ template: "missing" }), /nu există/);
+  assert.throws(() => resolveTemplate({ template: "missing" }), /does not exist/);
   assert.throws(
     () => resolveTemplate({ template: makeTemplateId, scenes: [] }),
-    /Câmp neacceptat/,
+    /Unsupported field/,
   );
 });
 test("subtitrările folosesc offseturile vocii și refuză o sincronizare inventată", () => {
@@ -62,7 +62,7 @@ test("subtitrările folosesc offseturile vocii și refuză o sincronizare invent
   assert.equal(cues[1].start, 1.7999999999999998);
   assert.throws(
     () => subtitleCues({ text, timing: "speech" }, {}, 3),
-    /nu a returnat timpi/,
+    /did not return subtitle timings/,
   );
   assert.equal(subtitleCues({ text, timing: "estimated" }, null, 3).length, 2);
 });
@@ -116,7 +116,7 @@ test("FLUX: model aprobat, dimensiuni valide, polling, descărcare și respinger
           json: async () => ({ polling_url: "https://evil.example/get" }),
         }),
       }),
-      /nu este validă/,
+      /is not valid/,
     );
   } finally {
     if (previous === undefined) delete process.env.BFL_API_KEY;

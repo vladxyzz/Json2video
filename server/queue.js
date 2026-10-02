@@ -45,7 +45,7 @@ export async function tick() {
     store.update(job.id, {
       status: "running",
       progress: 1,
-      message: "Pregătire fișiere",
+      message: "Preparing files",
     });
     const callback = job.input.webhook_url
       ? { webhook: { state: "pending", attempts: 0, nextAttempt: Date.now() } }
@@ -59,7 +59,7 @@ export async function tick() {
         ...callback,
         status: "done",
         progress: 100,
-        message: "Video finalizat",
+        message: "Video finished",
         ended_at: new Date().toISOString(),
       });
     } catch (error) {

@@ -15,7 +15,7 @@ if (!process.env.API_KEY && !fs.existsSync(secretPath))
 export const apiKey =
   process.env.API_KEY || fs.readFileSync(secretPath, "utf8").trim();
 if (apiKey.length < 24)
-  throw new Error("API_KEY trebuie să aibă minimum 24 de caractere.");
+  throw new Error("API_KEY must be at least 24 characters long.");
 export const port = Number(process.env.PORT || 3000);
 export const publicUrl = (
   process.env.PUBLIC_BASE_URL || `http://localhost:${port}`

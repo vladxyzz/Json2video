@@ -24,12 +24,12 @@ export async function safeRequest(raw, options = {}, redirects = 0) {
     (url.port && url.port !== "443")
   )
     throw new Error(
-      "Sunt permise numai URL-uri HTTPS publice pe portul 443, fără credențiale.",
+      "Only public HTTPS URLs on port 443 without credentials are allowed.",
     );
   const hostname = url.hostname.replace(/^\[|\]$/g, "");
   const addresses = await dns.lookup(hostname, { all: true });
   if (!addresses.length || addresses.some((a) => !isPublicAddress(a.address)))
-    throw new Error("Adresele locale, private sau rezervate nu sunt permise.");
+    throw new Error("Local, private or reserved addresses are not allowed.");
   const pinned = addresses[0];
   return new Promise((resolve, reject) => {
     const request = https.request(
@@ -50,7 +50,7 @@ export async function safeRequest(raw, options = {}, redirects = 0) {
           response.resume();
           if (options.method === "POST" || redirects >= 3)
             return reject(
-              new Error("Redirectare refuzată. Folosește adresa HTTPS finală."),
+              new Error("Redirect refused. Use the final HTTPS address."),
             );
           safeRequest(
             new URL(response.headers.location, url).href,
@@ -63,7 +63,7 @@ export async function safeRequest(raw, options = {}, redirects = 0) {
           response.resume();
           return reject(
             new Error(
-              `Serverul extern a răspuns cu HTTP ${response.statusCode}.`,
+              `The external server replied with HTTP ${response.statusCode}.`,
             ),
           );
         }
@@ -73,7 +73,7 @@ export async function safeRequest(raw, options = {}, redirects = 0) {
     const timer = setTimeout(
       () =>
         request.destroy(
-          new Error("Serviciul extern nu a răspuns în 30 secunde."),
+          new Error("The external service did not respond within 30 seconds."),
         ),
       30000,
     );
@@ -90,7 +90,7 @@ export async function download(raw, target) {
       size += chunk.length;
       cb(
         size > 100 * 1024 * 1024
-          ? new Error("Fișierul depășește 100 MB.")
+          ? new Error("The file is larger than 100 MB.")
           : null,
         chunk,
       );

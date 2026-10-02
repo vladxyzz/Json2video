@@ -12,7 +12,7 @@ export function subtitleCues(element, voice, duration) {
   }
   if (!words?.length)
     throw new Error(
-      "Vocea nu a returnat timpi pentru subtitrări. Poți alege explicit timing: estimated pentru o aproximare.",
+      "The voice did not return subtitle timings. You can set timing: estimated for an approximation.",
     );
   const cues = [];
   for (let i = 0; i < words.length; i += 6) {

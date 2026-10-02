@@ -38,7 +38,7 @@
             "maxLength": 2000
           },
           "name": {
-            "default": "Video fără titlu",
+            "default": "Untitled video",
             "type": "string",
             "minLength": 1,
             "maxLength": 120

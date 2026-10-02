@@ -17,13 +17,13 @@ export function providerIssues(movie) {
     (!process.env.AZURE_SPEECH_KEY || !process.env.AZURE_SPEECH_REGION)
   )
     issues.push(
-      "Configurează AZURE_SPEECH_KEY și AZURE_SPEECH_REGION în .env pentru vocea Azure.",
+      "Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION in .env to use the Azure voice.",
     );
   if (
     elements.some((e) => e.type === "image" && e.prompt) &&
     !process.env.BFL_API_KEY
   )
-    issues.push("Configurează BFL_API_KEY în .env pentru FLUX 1.1 Pro.");
+    issues.push("Set BFL_API_KEY in .env to use FLUX 1.1 Pro.");
   return issues;
 }
 
@@ -35,9 +35,9 @@ export async function generateImage(
   { fetchImpl = fetch, downloadAsset = download, sleep = delay } = {},
 ) {
   if (!process.env.BFL_API_KEY)
-    throw new Error("Lipsește BFL_API_KEY pentru FLUX 1.1 Pro.");
+    throw new Error("BFL_API_KEY is missing for FLUX 1.1 Pro.");
   const model = imageModels[element.model];
-  if (!model) throw new Error("Modelul de imagini nu este implementat.");
+  if (!model) throw new Error("This image model is not implemented.");
   const scale = Math.min(1, 1440 / W, 1440 / H);
   const size = (n) =>
     Math.max(256, Math.min(1440, Math.round((n * scale) / 32) * 32));
@@ -53,7 +53,7 @@ export async function generateImage(
     });
     if (!r.ok)
       throw new Error(
-        `FLUX a răspuns cu HTTP ${r.status}. Verifică cheia, creditele și disponibilitatea serviciului.`,
+        `FLUX replied with HTTP ${r.status}. Check the key, your credits and the service status.`,
       );
     return r.json();
   };
@@ -75,14 +75,14 @@ export async function generateImage(
     poll.username ||
     poll.password
   )
-    throw new Error("Adresa de status FLUX nu este validă.");
+    throw new Error("The FLUX status URL is not valid.");
   const deadline = Date.now() + 300000;
   for (let i = 0; i < 150 && Date.now() < deadline; i++) {
     await sleep(2000);
     const result = await read(poll.href, { headers });
     if (result.status === "Ready") {
       if (!result.result?.sample)
-        throw new Error("FLUX nu a returnat o imagine.");
+        throw new Error("FLUX did not return an image.");
       await downloadAsset(result.result.sample, target);
       return;
     }
@@ -91,16 +91,16 @@ export async function generateImage(
         result.status,
       )
     )
-      throw new Error(`Generarea FLUX s-a oprit: ${result.status}.`);
+      throw new Error(`FLUX generation stopped: ${result.status}.`);
   }
-  throw new Error("Generarea FLUX a depășit timpul de așteptare.");
+  throw new Error("FLUX generation timed out.");
 }
 
 export async function azureSpeech(element, target) {
   const key = process.env.AZURE_SPEECH_KEY,
     region = process.env.AZURE_SPEECH_REGION;
   if (!key || !region || !/^[a-z0-9]+$/.test(region))
-    throw new Error("Configurează cheia și regiunea Azure Speech în .env.");
+    throw new Error("Set the Azure Speech key and region in .env.");
   const sdk = await import("microsoft-cognitiveservices-speech-sdk");
   const config = sdk.SpeechConfig.fromSubscription(key, region);
   config.speechSynthesisVoiceName = element.voice;
@@ -121,7 +121,7 @@ export async function azureSpeech(element, target) {
   try {
     const result = await new Promise((resolve, reject) => {
       const timer = setTimeout(
-        () => reject(new Error("Azure Speech nu a răspuns în 90 secunde.")),
+        () => reject(new Error("Azure Speech did not respond within 90 seconds.")),
         90000,
       );
       synthesizer.speakTextAsync(
@@ -134,7 +134,7 @@ export async function azureSpeech(element, target) {
           clearTimeout(timer);
           reject(
             new Error(
-              "Azure Speech a eșuat. Verifică cheia, regiunea și vocea.",
+              "Azure Speech failed. Check the key, region and voice.",
             ),
           );
         },
@@ -142,7 +142,7 @@ export async function azureSpeech(element, target) {
     });
     if (result.reason !== sdk.ResultReason.SynthesizingAudioCompleted)
       throw new Error(
-        "Azure Speech nu a generat vocea. Verifică cheia, regiunea și vocea selectată.",
+        "Azure Speech did not produce a voice. Check the key, region and selected voice.",
       );
     await fs.writeFile(target, Buffer.from(result.audioData));
     return { words };

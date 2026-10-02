@@ -120,9 +120,13 @@ test(
   async () => {
     assert.equal((await fetch(base + "/v2/movies")).status, 401);
     assert.equal((await fetch(base + "/api/session")).status, 200);
-    assert.deepEqual(await (await fetch(base + "/api/session")).json(), {
-      local: false,
-    });
+    // Key-free facts only: never the API key, but enough for the UI to tell a
+    // hosted deployment from a local one before anyone has authenticated.
+    const session = await (await fetch(base + "/api/session")).json();
+    assert.equal(session.local, false);
+    assert.equal("key" in session, false);
+    assert.equal(session.publicReady, false);
+    assert.equal(typeof session.publicUrl, "string");
     assert.equal(
       (await request("/v2/movies", { method: "POST", body: "{broken" })).status,
       400,
@@ -311,7 +315,7 @@ test(
       await delay(150);
     }
     assert.equal(failed.status, "error");
-    assert.match(failed.message, /private|locale|rezervate/);
+    assert.match(failed.message, /private|Local|reserved/);
     assert.equal(failed.url, null);
   },
 );

@@ -1,9 +1,9 @@
 export const examples = [
   {
     id: "english",
-    label: "Reel cu voce în engleză",
+    label: "Reel with an English voice",
     description:
-      "Două scene și narațiune în engleză. Voce locală, fără cheie API.",
+      "Two scenes with English narration. Local voice, no API key needed.",
     movie: {
       name: "Small steps. Big ideas.",
       resolution: "hd",
@@ -52,18 +52,18 @@ export const examples = [
   },
   {
     id: "manifest",
-    label: "Primul tău reel",
+    label: "Your first reel",
     description:
-      "Trei scene, text și culori. Funcționează fără servicii externe.",
+      "Three scenes of text and color. Works without any external service.",
     movie: {
-      name: "Ideile tale. În mișcare.",
+      name: "Your ideas. In motion.",
       resolution: "hd",
       "aspect-ratio": "9:16",
       fps: 30,
       variables: { brand: "STUDIO" },
       scenes: [
         {
-          name: "Introducere",
+          name: "Intro",
           duration: 3,
           "background-color": "#c6f36b",
           elements: [
@@ -76,13 +76,13 @@ export const examples = [
             },
             {
               type: "text",
-              text: "Ideile tale.\nÎn mișcare.",
+              text: "Your ideas.\nIn motion.",
               color: "#182019",
               "font-size": 88,
             },
             {
               type: "text",
-              text: "Un video începe cu o idee.",
+              text: "Every video starts with an idea.",
               color: "#182019",
               "font-size": 27,
               y: 1080,
@@ -90,19 +90,19 @@ export const examples = [
           ],
         },
         {
-          name: "Poveste",
+          name: "Story",
           duration: 3,
           "background-color": "#20282c",
           elements: [
             {
               type: "text",
-              text: "Scrii JSON.\nCreezi video.",
+              text: "Write JSON.\nMake video.",
               color: "#c6f36b",
               "font-size": 82,
             },
             {
               type: "text",
-              text: "Scene. Text. Sunet. Poveste.",
+              text: "Scenes. Text. Sound. Story.",
               color: "#ffffff",
               "font-size": 27,
               y: 1080,
@@ -110,19 +110,19 @@ export const examples = [
           ],
         },
         {
-          name: "Final",
+          name: "Outro",
           duration: 3,
           "background-color": "#eceae5",
           elements: [
             {
               type: "text",
-              text: "De la idee\nla play.",
+              text: "From idea\nto play.",
               color: "#182019",
               "font-size": 90,
             },
             {
               type: "text",
-              text: "Creat cu Json2vid",
+              text: "Made with Json2vid",
               color: "#46554a",
               "font-size": 26,
               y: 1080,
@@ -134,10 +134,10 @@ export const examples = [
   },
   {
     id: "landscape",
-    label: "Anunț landscape",
-    description: "Un mesaj scurt, format 16:9 pentru YouTube.",
+    label: "Landscape announcement",
+    description: "A short message in 16:9 for YouTube.",
     movie: {
-      name: "Un nou început",
+      name: "A fresh start",
       resolution: "hd",
       "aspect-ratio": "16:9",
       scenes: [
@@ -147,13 +147,13 @@ export const examples = [
           elements: [
             {
               type: "text",
-              text: "Ce urmează începe aici.",
+              text: "What comes next starts here.",
               "font-size": 64,
               color: "#c6f36b",
             },
             {
               type: "text",
-              text: "Schimbă acest text cu mesajul tău.",
+              text: "Replace this text with your own message.",
               "font-size": 26,
               y: 500,
             },
@@ -164,15 +164,15 @@ export const examples = [
   },
   {
     id: "square",
-    label: "Citat pătrat",
-    description: "Text și variabile pentru postări generate din Sheets.",
+    label: "Square quote",
+    description: "Text and variables for posts generated from Sheets.",
     movie: {
-      name: "Citatul zilei",
+      name: "Quote of the day",
       resolution: "hd",
       "aspect-ratio": "1:1",
       variables: {
-        quote: "Lucrurile mari încep\ncu un pas mic.",
-        author: "Gândul zilei",
+        quote: "Big things start\nwith one small step.",
+        author: "Thought of the day",
       },
       scenes: [
         {

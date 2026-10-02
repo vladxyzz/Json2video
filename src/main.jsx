@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createRoot } from "react-dom/client";
 import {
   Braces,
@@ -20,6 +26,9 @@ import {
   KeyRound,
   X,
   HardDrive,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import { examples } from "../shared/examples.js";
 import { validateMovie, dimensions, pixelValue } from "../shared/schema.js";
@@ -33,11 +42,12 @@ import "./style.css";
 
 const pretty = (value) => JSON.stringify(value, null, 2);
 const statusLabels = {
-  pending: "În așteptare",
-  running: "Se randează",
-  done: "Finalizat",
-  error: "Eroare",
+  pending: "Waiting",
+  running: "Rendering",
+  done: "Done",
+  error: "Error",
 };
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const seconds = (n) =>
   n == null || !Number.isFinite(n)
     ? "Auto"
@@ -55,14 +65,129 @@ const variableSource = (name) =>
             ? "HTTP 29 · flux-pro → FLUX 1.1 Pro"
             : /^scene_\d+_(voice|prompt)$/.test(name)
               ? `JSON 8 · ${name}`
-              : "variables din cererea JSON";
+              : "variables from the JSON request";
+const themeChoices = [
+  ["system", Monitor, "System"],
+  ["light", Sun, "Light"],
+  ["dark", Moon, "Dark"],
+];
+function useTheme() {
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem("j2v-theme");
+      return saved === "light" || saved === "dark" ? saved : "system";
+    } catch {
+      return "system";
+    }
+  });
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "system") delete root.dataset.theme;
+    else root.dataset.theme = theme;
+    try {
+      if (theme === "system") localStorage.removeItem("j2v-theme");
+      else localStorage.setItem("j2v-theme", theme);
+    } catch {}
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const paint = () => {
+      const dark = theme === "dark" || (theme === "system" && media.matches);
+      document
+        .querySelector("meta[name=theme-color]")
+        ?.setAttribute("content", dark ? "#0b0f0f" : "#e9ebe1");
+    };
+    paint();
+    media.addEventListener("change", paint);
+    return () => media.removeEventListener("change", paint);
+  }, [theme]);
+  return [theme, setTheme];
+}
+const localHostname = /^(localhost|127\.0\.0\.1|\[::1\]|::1)$/;
+const LINE_HEIGHT = 22;
+function CodeEditor({ value, onChange, invalid }) {
+  const textRef = useRef(null),
+    mirrorRef = useRef(null),
+    gutterRef = useRef(null),
+    [width, setWidth] = useState(0),
+    [rows, setRows] = useState([]);
+  const lines = useMemo(() => value.split("\n"), [value]);
+  // The textarea wraps long lines, so each logical line can span several
+  // visual rows. A hidden mirror with identical metrics measures them, and the
+  // gutter gives every line number the height of its wrapped text.
+  useEffect(() => {
+    const el = textRef.current;
+    const read = () => {
+      const css = getComputedStyle(el);
+      setWidth(
+        Math.max(
+          0,
+          el.clientWidth -
+            parseFloat(css.paddingLeft) -
+            parseFloat(css.paddingRight),
+        ),
+      );
+    };
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  useLayoutEffect(() => {
+    const kids = mirrorRef.current?.children;
+    if (!kids) return;
+    const next = Array.from(kids, (k) =>
+      Math.max(1, Math.round(k.offsetHeight / LINE_HEIGHT)),
+    );
+    setRows((prev) =>
+      prev.length === next.length && prev.every((n, i) => n === next[i])
+        ? prev
+        : next,
+    );
+  }, [lines, width]);
+  return (
+    <div className="code-area">
+      <div ref={gutterRef} aria-hidden="true" className="line-numbers">
+        {lines.map((_, i) => (
+          <div key={i} style={{ height: (rows[i] ?? 1) * LINE_HEIGHT }}>
+            {i + 1}
+          </div>
+        ))}
+      </div>
+      <div
+        ref={mirrorRef}
+        aria-hidden="true"
+        className="code-mirror"
+        style={{ width }}
+      >
+        {lines.map((line, i) => (
+          <div key={i}>{line || "​"}</div>
+        ))}
+      </div>
+      <textarea
+        ref={textRef}
+        aria-label="Cod JSON pentru videoclip"
+        aria-invalid={invalid}
+        aria-describedby="json-validation"
+        spellCheck="false"
+        wrap="soft"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={(e) => {
+          if (gutterRef.current)
+            gutterRef.current.scrollTop = e.target.scrollTop;
+        }}
+      />
+    </div>
+  );
+}
 function App() {
+  const [theme, setTheme] = useTheme();
   const [view, setView] = useState("editor"),
     [source, setSource] = useState(
       () => localStorage.getItem("j2v-draft") || pretty(examples[0].movie),
     );
   const [key, setKey] = useState(() => sessionStorage.getItem("j2v-key") || ""),
     [sessionReady, setSessionReady] = useState(false),
+    [session, setSession] = useState(null),
     [config, setConfig] = useState(null),
     [jobs, setJobs] = useState([]),
     [active, setActive] = useState(null),
@@ -74,9 +199,7 @@ function App() {
     [jobsLoading, setJobsLoading] = useState(true),
     [selectedTemplate, setSelectedTemplate] = useState(null),
     [copied, setCopied] = useState(false);
-  const textRef = useRef(null),
-    numbersRef = useRef(null),
-    fileRef = useRef(null),
+  const fileRef = useRef(null),
     noticeTimer = useRef(null);
   const { parsed, rawMovie, syntaxError } = useMemo(() => {
     try {
@@ -101,6 +224,18 @@ function App() {
   const scene =
     movie?.scenes[Math.min(sceneIndex, (movie?.scenes.length || 1) - 1)];
   const activeJob = jobs.find((j) => j.project === active);
+  // Hosted vs local is judged from what is observable without a key: the
+  // address in the browser and the key-free /api/session. /api/config only
+  // refines it once authenticated, so the connect screen no longer claims
+  // "local" for a hosted server.
+  const serverHttps =
+    config?.publicReady ??
+    session?.publicReady ??
+    location.protocol === "https:";
+  const publicHost =
+    !localHostname.test(location.hostname) ||
+    !!(config?.publicReady ?? session?.publicReady);
+  const hostKnown = publicHost || !!config || !!session;
   function toast(message) {
     setNotice(message);
     clearTimeout(noticeTimer.current);
@@ -118,7 +253,7 @@ function App() {
     const data = await response.json();
     if (!response.ok)
       throw new Error(
-        data.message || data.errors?.[0]?.message || "Cererea nu a reușit.",
+        data.message || data.errors?.[0]?.message || "The request failed.",
       );
     return data;
   }
@@ -126,6 +261,7 @@ function App() {
     fetch("/api/session")
       .then((r) => r.json())
       .then((s) => {
+        setSession(s);
         if (s.key) setKey(s.key);
       })
       .catch(() => {})
@@ -141,7 +277,7 @@ function App() {
     let needsConfig = true;
     const refresh = async () => {
       let interval = 15000;
-      if (document.hidden) {
+      if (document.hidden && !needsConfig) {
         timer = setTimeout(refresh, interval);
         return;
       }
@@ -192,7 +328,7 @@ function App() {
       setActive(result.project);
       const data = await api("/v2/movies");
       setJobs(data.movies);
-      toast("Videoclipul a intrat în coada de randare.");
+      toast("Your video is in the render queue.");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -214,7 +350,7 @@ function App() {
     updateSource(pretty(example.movie));
     setSelectedTemplate(null);
     setView("editor");
-    toast("Exemplu încărcat în editor.");
+    toast("Example loaded into the editor.");
   }
   function downloadJson() {
     const url = URL.createObjectURL(
@@ -232,7 +368,7 @@ function App() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast("Selectează și copiază textul manual.");
+      toast("Couldn't copy automatically. Select the text and copy it by hand.");
     }
   }
   async function openJob(job) {
@@ -247,15 +383,15 @@ function App() {
     }
   }
   const nav = [
-    ["editor", Braces, "Editor video"],
-    ["renders", Film, "Videoclipuri"],
-    ["templates", Layers, "Exemple"],
+    ["editor", Braces, "Video editor"],
+    ["renders", Film, "Videos"],
+    ["templates", Layers, "Examples"],
     ["api", Code2, "API & Make"],
   ];
   return (
     <div className="app-shell">
       <a className="skip-link" href="#workspace-main">
-        Sari la editor
+        Skip to the editor
       </a>
       <aside className="sidebar">
         <a
@@ -272,8 +408,8 @@ function App() {
           json<span className="brand-two">2</span>vid
           <span className="studio-word">STUDIO</span>
         </a>
-        <div className="workspace-label">Spațiu de lucru</div>
-        <nav aria-label="Navigare principală">
+        <div className="workspace-label">Workspace</div>
+        <nav aria-label="Main navigation">
           {nav.map(([id, Icon, label]) => (
             <button
               key={id}
@@ -299,22 +435,34 @@ function App() {
               }
             />
             {networkError
-              ? "Server indisponibil"
+              ? "Server unavailable"
               : config?.engine === "ready"
-                ? "Motor de randare activ"
+                ? "Render engine ready"
                 : config
-                  ? "FFmpeg indisponibil"
-                  : "Conectare la motor…"}
+                  ? "FFmpeg unavailable"
+                  : sessionReady && !key
+                    ? "Sign-in required"
+                    : "Connecting to the engine…"}
           </div>
           <span className="small-muted">FFmpeg · MP4 / H.264</span>
           <div className="profile">
             <HardDrive size={18} />
             <div>
               <strong>
-                {config?.publicReady ? "Server public" : "Server local"}
+                {!hostKnown
+                  ? "Checking the server…"
+                  : publicHost
+                    ? "Public server"
+                    : "Local server"}
               </strong>
               <span>
-                {config?.publicReady ? "HTTPS activ" : "Pe acest calculator"}
+                {!hostKnown
+                  ? "Just a moment"
+                  : publicHost
+                    ? serverHttps
+                      ? "HTTPS enabled"
+                      : "No HTTPS"
+                    : "On this computer"}
               </span>
             </div>
           </div>
@@ -326,27 +474,44 @@ function App() {
             Studio <ChevronRight size={14} />
             <span>{nav.find((n) => n[0] === view)?.[2]}</span>
           </div>
-          <a
-            className="docs-link"
-            href="https://json2video.com/docs/v2/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <BookOpen size={15} />
-            Referință JSON2Video
-            <ArrowUpRight size={14} />
-          </a>
+          <div className="topbar-tools">
+            <div className="theme-switch" role="group" aria-label="Theme">
+              {themeChoices.map(([id, Icon, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={theme === id}
+                  title={label}
+                  className={theme === id ? "on" : ""}
+                  onClick={() => setTheme(id)}
+                >
+                  <Icon size={15} aria-hidden="true" />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+            <a
+              className="docs-link"
+              href="https://json2video.com/docs/v2/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <BookOpen size={15} />
+              JSON2Video reference
+              <ArrowUpRight size={14} />
+            </a>
+          </div>
         </header>
         {!sessionReady ? (
           <div className="loading-state" role="status">
             <LoaderCircle size={18} className="spin" />
-            Se conectează studioul…
+            Connecting to the studio…
           </div>
         ) : !key ? (
           <section className="connect-panel">
             <KeyRound size={32} />
-            <h1>Conectează-te la studio</h1>
-            <p>Introdu cheia API configurată pe server.</p>
+            <h1>Connect to the studio</h1>
+            <p>Enter the API key set on your server.</p>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -354,14 +519,14 @@ function App() {
               }}
             >
               <input
-                aria-label="Cheie API"
+                aria-label="API key"
                 name="key"
                 type="password"
                 required
                 minLength={24}
-                placeholder="Cheia ta API"
+                placeholder="Your API key"
               />
-              <button className="primary">Conectează</button>
+              <button className="primary">Connect</button>
             </form>
           </section>
         ) : (
@@ -379,7 +544,7 @@ function App() {
                     } catch {}
                   }}
                 >
-                  Schimbă cheia
+                  Change key
                 </button>
               </div>
             )}
@@ -388,7 +553,7 @@ function App() {
                 <AlertCircle size={18} />
                 {error}
                 <button
-                  aria-label="Închide eroarea"
+                  aria-label="Dismiss error"
                   onClick={() => setError("")}
                 >
                   <X size={16} />
@@ -399,15 +564,15 @@ function App() {
               <>
                 <section className="page-heading editor-heading">
                   <div>
-                    <h1>Editor video</h1>
-                    <p>JSON, scene și randare</p>
+                    <h1>Video editor</h1>
+                    <p>JSON, scenes and rendering</p>
                   </div>
                   <button
                     className="secondary"
                     onClick={() => fileRef.current.click()}
                   >
                     <Plus size={16} />
-                    Importă JSON
+                    Import JSON
                   </button>
                   <input
                     ref={fileRef}
@@ -421,9 +586,9 @@ function App() {
                           const text = await f.text();
                           JSON.parse(text);
                           updateSource(text);
-                          toast("JSON importat.");
+                          toast("JSON imported.");
                         } catch {
-                          setError("Fișierul nu conține JSON valid.");
+                          setError("That file doesn't contain valid JSON.");
                         }
                       }
                       e.target.value = "";
@@ -435,21 +600,19 @@ function App() {
                     <div className="project-title">
                       <Clapperboard size={18} />
                       <input
-                        aria-label="Numele videoclipului"
+                        aria-label="Video name"
                         value={rawMovie?.name ?? ""}
-                        placeholder={
-                          rawMovie?.comment || "Numele videoclipului"
-                        }
+                        placeholder={rawMovie?.comment || "Video name"}
                         disabled={!rawMovie}
                         onChange={(e) => changeMovie("name", e.target.value)}
                       />
-                      <span className="draft-tag">Ciornă</span>
+                      <span className="draft-tag">Draft</span>
                     </div>
                     <div className="project-actions">
                       <button
                         className="icon-button"
-                        title="Descarcă JSON"
-                        aria-label="Descarcă JSON"
+                        title="Download JSON"
+                        aria-label="Download JSON"
                         onClick={downloadJson}
                       >
                         <Download size={17} />
@@ -466,7 +629,7 @@ function App() {
                         ) : (
                           <Play size={15} fill="currentColor" />
                         )}
-                        Generează video
+                        Generate video
                       </button>
                     </div>
                   </div>
@@ -481,43 +644,21 @@ function App() {
                           onClick={() => {
                             try {
                               setSource(pretty(JSON.parse(source)));
-                              toast("JSON formatat.");
+                              toast("JSON formatted.");
                             } catch {
-                              setError(
-                                "Corectează sintaxa înainte de formatare.",
-                              );
+                              setError("Fix the syntax before formatting.");
                             }
                           }}
                         >
                           <Code2 size={14} />
-                          Formatează
+                          Format
                         </button>
                       </div>
-                      <div className="code-area">
-                        <pre
-                          ref={numbersRef}
-                          aria-hidden="true"
-                          className="line-numbers"
-                        >
-                          {source
-                            .split("\n")
-                            .map((_, i) => i + 1)
-                            .join("\n")}
-                        </pre>
-                        <textarea
-                          ref={textRef}
-                          aria-label="Cod JSON pentru videoclip"
-                          aria-invalid={!movie}
-                          aria-describedby="json-validation"
-                          spellCheck="false"
-                          value={source}
-                          onChange={(e) => updateSource(e.target.value)}
-                          onScroll={(e) => {
-                            if (numbersRef.current)
-                              numbersRef.current.scrollTop = e.target.scrollTop;
-                          }}
-                        />
-                      </div>
+                      <CodeEditor
+                        value={source}
+                        invalid={!movie}
+                        onChange={updateSource}
+                      />
                       <div
                         id="json-validation"
                         className={`validation-bar ${movie ? "valid" : "invalid"}`}
@@ -525,11 +666,11 @@ function App() {
                         {movie ? (
                           <>
                             <CheckCircle2 size={14} />
-                            JSON valid
+                            Valid JSON
                             <span>
-                              {movie.scenes.length} scene ·{" "}
+                              {plural(movie.scenes.length, "scene")} ·{" "}
                               {duration == null
-                                ? "durată automată"
+                                ? "automatic duration"
                                 : `${duration}s`}
                             </span>
                           </>
@@ -538,8 +679,8 @@ function App() {
                             <AlertCircle size={14} />
                             <span>
                               {syntaxError
-                                ? `Sintaxă JSON: ${syntaxError}`
-                                : `${issues[0]?.path.join(".") || "JSON"}: ${issues[0]?.message || "Completează JSON-ul."}`}
+                                ? `JSON syntax: ${syntaxError}`
+                                : `${issues[0]?.path.join(".") || "JSON"}: ${issues[0]?.message || "Fill in the JSON."}`}
                             </span>
                           </>
                         )}
@@ -548,14 +689,14 @@ function App() {
                     <div className="preview-pane">
                       <div className="pane-heading">
                         <div>
-                          <span>Previzualizare</span>
+                          <span>Preview</span>
                           <span className="preview-tag">
-                            {activeJob?.status === "done" ? "MP4" : "Schiță"}
+                            {activeJob?.status === "done" ? "MP4" : "Sketch"}
                           </span>
                         </div>
                         <label className="format-select">
                           <select
-                            aria-label="Format video"
+                            aria-label="Video format"
                             value={
                               movie?.["aspect-ratio"] ||
                               rawMovie?.["aspect-ratio"] ||
@@ -568,7 +709,7 @@ function App() {
                           >
                             <option value="9:16">9:16 · Vertical</option>
                             <option value="16:9">16:9 · Landscape</option>
-                            <option value="1:1">1:1 · Pătrat</option>
+                            <option value="1:1">1:1 · Square</option>
                           </select>
                         </label>
                       </div>
@@ -588,12 +729,12 @@ function App() {
                             <Braces size={36} />
                             <p>
                               {inspection?.missing.length
-                                ? `${inspection.missing.length} variabile așteaptă date.`
-                                : "Corectează JSON-ul pentru previzualizare."}
+                                ? `${plural(inspection.missing.length, "variable is", "variables are")} waiting for values.`
+                                : "Fix the JSON to see a preview."}
                             </p>
                             {!!inspection?.missing.length && (
                               <small>
-                                Valorile se trimit în câmpul variables din Make.
+                                Make sends the values in the variables field.
                               </small>
                             )}
                           </div>
@@ -647,7 +788,7 @@ function App() {
                             </div>
                             {activeJob.status === "running" && (
                               <progress
-                                aria-label="Progres randare"
+                                aria-label="Render progress"
                                 value={activeJob.progress}
                                 max="100"
                               />
@@ -657,8 +798,7 @@ function App() {
                         ) : (
                           <p>
                             <Film size={15} />
-                            Generează videoclipul pentru redarea rezultatului
-                            final.
+                            Generate the video to play the final result.
                           </p>
                         )}
                       </div>
@@ -672,8 +812,8 @@ function App() {
                       </span>
                       <span>
                         {duration == null
-                          ? "Durata se calculează din media"
-                          : `${duration}s în total`}
+                          ? "Duration is calculated from the media"
+                          : `${duration}s in total`}
                       </span>
                     </div>
                     <div className="scene-strip">
@@ -700,11 +840,11 @@ function App() {
                           </span>
                           <span className="scene-info">
                             <strong>
-                              {s.name || s.comment || `Scena ${i + 1}`}
+                              {s.name || s.comment || `Scene ${i + 1}`}
                             </strong>
                             <span>
                               {s.duration > 0 ? `${s.duration}s` : "Auto"} ·{" "}
-                              {s.elements.length} elemente
+                              {plural(s.elements.length, "element")}
                             </span>
                           </span>
                         </button>
@@ -715,11 +855,11 @@ function App() {
                         onClick={() => {
                           const input = resolveTemplate(JSON.parse(source));
                           input.scenes.push({
-                            name: "Scenă nouă",
+                            name: "New scene",
                             duration: 3,
                             "background-color": "#20282c",
                             elements: [
-                              { type: "text", text: "Povestea continuă." },
+                              { type: "text", text: "The story goes on." },
                             ],
                           });
                           setSource(pretty(input));
@@ -728,7 +868,7 @@ function App() {
                         }}
                       >
                         <Plus size={20} />
-                        <span>Adaugă scenă</span>
+                        <span>Add scene</span>
                       </button>
                     </div>
                   </div>
@@ -736,34 +876,36 @@ function App() {
                 {!!inspection?.variables.length && (
                   <details className="template-inspector">
                     <summary>
-                      Variabile șablon{" "}
+                      Template variables{" "}
                       <span>
-                        {inspection.variables.length} în total ·{" "}
-                        {inspection.missing.length} lipsă
+                        {inspection.variables.length} in total ·{" "}
+                        {inspection.missing.length} missing
                       </span>
                     </summary>
                     <p>
-                      Valorile provin din cererea Make. Șablonul rămâne
-                      neschimbat până când trimiți obiectul{" "}
-                      <code>variables</code>.
+                      The values come from the Make request. The template stays
+                      unchanged until you send the <code>variables</code>{" "}
+                      object.
                     </p>
                     <div className="variable-table-wrap">
                       <table className="variable-table">
                         <thead>
                           <tr>
-                            <th>Variabilă</th>
-                            <th>Sursa din scenariul tău</th>
-                            <th>Valoare în JSON</th>
+                            <th>Variable</th>
+                            <th>Source in your scenario</th>
+                            <th>Value in the JSON</th>
                           </tr>
                         </thead>
                         <tbody>
                           {inspection.variables.map((v) => (
                             <tr key={v.name}>
-                              <td>
+                              <td data-label="Variable">
                                 <code>{v.name}</code>
                               </td>
-                              <td>{variableSource(v.name)}</td>
-                              <td>
+                              <td data-label="Source in your scenario">
+                                {variableSource(v.name)}
+                              </td>
+                              <td data-label="Value in the JSON">
                                 {v.defined ? (
                                   <span
                                     className="variable-value"
@@ -773,7 +915,7 @@ function App() {
                                   </span>
                                 ) : (
                                   <span className="missing-value">
-                                    Lipsește
+                                    Missing
                                   </span>
                                 )}
                               </td>
@@ -783,19 +925,20 @@ function App() {
                       </table>
                     </div>
                     <p>
-                      {inspection.scenes} scene · {inspection.generatedImages}{" "}
-                      imagini din prompt · {inspection.voices} voci ·{" "}
-                      {inspection.subtitles} subtitrări
+                      {plural(inspection.scenes, "scene")} ·{" "}
+                      {plural(inspection.generatedImages, "image")} from a
+                      prompt · {plural(inspection.voices, "voice")} ·{" "}
+                      {plural(inspection.subtitles, "subtitle track")}
                     </p>
                   </details>
                 )}
                 <div className="editor-footnote">
                   <span>
                     <Check size={14} />
-                    Ciorna se salvează automat în acest browser.
+                    Your draft is saved automatically in this browser.
                   </span>
                   <button onClick={() => setView("api")}>
-                    Automatizează cu Make <ArrowUpRight size={14} />
+                    Automate with Make <ArrowUpRight size={14} />
                   </button>
                 </div>
               </>
@@ -804,29 +947,41 @@ function App() {
               <section className="content-page">
                 <div className="page-heading">
                   <div>
-                    <h1>Videoclipuri</h1>
-                    <p>Randări reale, progres și fișiere gata de descărcat.</p>
+                    <h1>Videos</h1>
+                    <p>Real renders, live progress and files ready to download.</p>
                   </div>
                   <button className="primary" onClick={() => setView("editor")}>
                     <Plus size={16} />
-                    Creează video
+                    Create video
                   </button>
                 </div>
                 {jobsLoading ? (
                   <div className="loading-state" role="status">
                     <LoaderCircle size={18} className="spin" />
-                    Se încarcă videoclipurile…
+                    Loading your videos…
                   </div>
                 ) : !jobs.length ? (
                   <div className="empty-state">
-                    <Film size={38} />
-                    <h2>Prima poveste te așteaptă.</h2>
-                    <p>Generează un videoclip din editor. Îl vei găsi aici.</p>
+                    <svg
+                      className="leader"
+                      viewBox="0 0 160 160"
+                      aria-hidden="true"
+                    >
+                      <circle cx="80" cy="80" r="74" />
+                      <circle cx="80" cy="80" r="52" />
+                      <path d="M80 4v152M4 80h152" />
+                      <path className="sweep" d="M80 80V6a74 74 0 0 1 52 21Z" />
+                      <text x="80" y="104" textAnchor="middle">
+                        1
+                      </text>
+                    </svg>
+                    <h2>Your first story is waiting.</h2>
+                    <p>Generate a video in the editor and it will show up here.</p>
                     <button
                       className="secondary"
                       onClick={() => setView("editor")}
                     >
-                      Deschide editorul
+                      Open the editor
                     </button>
                   </div>
                 ) : (
@@ -836,7 +991,7 @@ function App() {
                         <button
                           className="job-thumbnail"
                           onClick={() => openJob(job)}
-                          aria-label={`Deschide ${job.name}`}
+                          aria-label={`Open ${job.name}`}
                         >
                           {job.thumbnail ? (
                             <img src={job.thumbnail} alt="" />
@@ -852,17 +1007,24 @@ function App() {
                             {job.name}
                           </button>
                           <span>
-                            {new Date(job.created_at).toLocaleString("ro-RO")} ·{" "}
-                            {job.duration ? `${job.duration}s` : "Randare"}
+                            {new Date(job.created_at).toLocaleString("en-US")} ·{" "}
+                            {job.duration ? `${job.duration}s` : "Render"}
                           </span>
                           <code>{job.project}</code>
                           {job.status === "error" && (
                             <p className="error-text">{job.message}</p>
                           )}
+                          {job.status === "running" && (
+                            <progress
+                              aria-label={`Render progress for ${job.name}`}
+                              value={job.progress}
+                              max="100"
+                            />
+                          )}
                           {job.webhook && (
                             <span>
                               Webhook: {job.webhook.state} ·{" "}
-                              {job.webhook.attempts} încercări{" "}
+                              {plural(job.webhook.attempts, "attempt")}{" "}
                               {job.webhook.state === "failed" && (
                                 <button
                                   onClick={async () => {
@@ -871,13 +1033,13 @@ function App() {
                                         `/api/movies/${job.project}/webhook/retry`,
                                         { method: "POST" },
                                       );
-                                      toast("Webhook reprogramat.");
+                                      toast("Webhook rescheduled.");
                                     } catch (e) {
                                       setError(e.message);
                                     }
                                   }}
                                 >
-                                  Reîncearcă
+                                  Retry
                                 </button>
                               )}
                             </span>
@@ -906,18 +1068,16 @@ function App() {
               <section className="content-page">
                 <div className="page-heading">
                   <div>
-                    <h1>Șabloane și exemple</h1>
-                    <p>
-                      Șablonul din Make și exemple pentru testarea motorului.
-                    </p>
+                    <h1>Templates and examples</h1>
+                    <p>Your Make template, plus examples for testing the engine.</p>
                   </div>
                 </div>
                 <article className="make-template-row">
                   <div>
-                    <h2>Scenariul tău Make</h2>
+                    <h2>Your Make scenario</h2>
                     <p>
-                      Intro + 10 scene, FLUX 1.1 Pro, GuyNeural și subtitrări.
-                      Cele 25 de variabile se trimit separat.
+                      Intro + 10 scenes, FLUX 1.1 Pro, GuyNeural and subtitles.
+                      The 25 variables are sent separately.
                     </p>
                     <code>{makeTemplateId}</code>
                   </div>
@@ -925,7 +1085,7 @@ function App() {
                     className="secondary"
                     onClick={() => setSelectedTemplate(templates[0])}
                   >
-                    Deschide șablonul <ArrowUpRight size={16} />
+                    Open the template <ArrowUpRight size={16} />
                   </button>
                 </article>
                 <div className="template-grid">
@@ -949,24 +1109,25 @@ function App() {
                             </>
                           ) : example.id === "manifest" ? (
                             <>
-                              Ideile tale.
+                              Your ideas.
                               <br />
-                              În mișcare.
+                              In motion.
                             </>
                           ) : example.id === "landscape" ? (
                             <>
-                              Ce urmează
+                              What comes
                               <br />
-                              începe aici.
+                              next starts here.
                             </>
                           ) : (
                             <>
-                              Un pas mic.
-                              <br />O idee mare.
+                              One small step.
+                              <br />
+                              One big idea.
                             </>
                           )}
                         </h2>
-                        <span>{example.movie.scenes.length} scene</span>
+                        <span>{plural(example.movie.scenes.length, "scene")}</span>
                       </div>
                       <h2>{example.label}</h2>
                       <p>{example.description}</p>
@@ -974,7 +1135,7 @@ function App() {
                         className="secondary"
                         onClick={() => setSelectedTemplate(example)}
                       >
-                        Folosește exemplul
+                        Use this example
                         <ArrowUpRight size={16} />
                       </button>
                     </article>
@@ -983,19 +1144,19 @@ function App() {
                 {selectedTemplate && (
                   <div className="inline-confirm" role="alert">
                     <span>
-                      Înlocuiești ciorna curentă cu „{selectedTemplate.label}”?
+                      Replace your current draft with “{selectedTemplate.label}”?
                     </span>
                     <button
                       className="secondary"
                       onClick={() => setSelectedTemplate(null)}
                     >
-                      Păstrează ciorna
+                      Keep my draft
                     </button>
                     <button
                       className="primary"
                       onClick={() => loadTemplate(selectedTemplate)}
                     >
-                      Încarcă exemplul
+                      Load the example
                     </button>
                   </div>
                 )}
@@ -1005,78 +1166,77 @@ function App() {
               <section className="content-page api-page">
                 <div className="page-heading">
                   <div>
-                    <h1>API și Make</h1>
-                    <p>
-                      Leagă editorul de Make și generează videoclipuri din date.
-                    </p>
+                    <h1>API and Make</h1>
+                    <p>Connect the editor to Make and generate videos from data.</p>
                   </div>
                   <span className="status-tag done">REST API · v2</span>
                 </div>
                 <div className="api-settings">
-                  <h2>Conexiunea ta</h2>
+                  <h2>Your connection</h2>
                   <label>
-                    Adresa API
+                    API address
                     <input
                       readOnly
                       value={`${config?.publicUrl || location.origin}/v2/movies`}
                     />
                   </label>
-                  {!config?.publicReady && (
+                  {hostKnown && !(publicHost && serverHttps) && (
                     <p className="connection-note">
                       <AlertCircle size={16} />
-                      Rulezi local. Make necesită un server cu HTTPS public.
-                      Setează PUBLIC_BASE_URL după publicarea serverului.
+                      {publicHost
+                        ? "This server isn't using HTTPS. Make needs a public HTTPS address, so set PUBLIC_BASE_URL to your https URL."
+                        : "You're running locally. Make needs a server with public HTTPS, so set PUBLIC_BASE_URL once you've published the server."}
                     </p>
                   )}
                   <label>
-                    Cheia API
+                    API key
                     <div className="key-field">
                       <input
-                        aria-label="Cheia API curentă"
+                        aria-label="Current API key"
                         type="password"
                         readOnly
                         value={key}
                       />
                       <button className="secondary" onClick={() => copy(key)}>
                         {copied ? <Check size={15} /> : <Copy size={15} />}
-                        Copiază
+                        Copy
                       </button>
                     </div>
                   </label>
                   <p className="muted">
-                    În Make HTTP v4: Authentication type → API key, plasare în
-                    header, nume <code>x-api-key</code>.
+                    In Make HTTP v4: Authentication type → API key, placed in
+                    the header, named <code>x-api-key</code>.
                   </p>
                   <div className="provider-status">
                     <span>
                       FLUX 1.1 Pro{" "}
-                      <strong>
+                      <strong className={config?.fluxImages ? "ok" : "missing"}>
                         {config?.fluxImages
-                          ? "Configurat"
-                          : "Lipsește BFL_API_KEY"}
+                          ? "Configured"
+                          : "BFL_API_KEY is missing"}
                       </strong>
                     </span>
                     <span>
                       Azure · GuyNeural{" "}
-                      <strong>
+                      <strong className={config?.azureSpeech ? "ok" : "missing"}>
                         {config?.azureSpeech
-                          ? "Configurat"
-                          : "Lipsesc cheia și regiunea Azure"}
+                          ? "Configured"
+                          : "Azure key and region are missing"}
                       </strong>
                     </span>
                   </div>
                   <p className="muted">
-                    Cheile se setează în fișierul .env de pe server. Aliasul{" "}
-                    <code>flux-pro</code> folosește explicit FLUX 1.1 Pro.
+                    Set the keys in the .env file on your server. The{" "}
+                    <code>flux-pro</code> alias explicitly uses FLUX 1.1 Pro.
                   </p>
                 </div>
                 <details className="make-contract" open>
-                  <summary>Cererea din scenariul tău</summary>
+                  <summary>The request in your scenario</summary>
                   <p>
-                    Șablonul <code>{makeTemplateId}</code> este inclus pe acest
-                    server. În HTTP 29, păstrezi ID-ul și mapările; schimbi
-                    adresa API și cheia. HTTP 41 citește în continuare{" "}
-                    <code>movie.url</code>, iar HTTP 44 descarcă MP4.
+                    The template <code>{makeTemplateId}</code> is included on
+                    this server. In HTTP 29, keep the ID and the mappings, and
+                    just change the API address and key. HTTP 41 still reads{" "}
+                    <code>movie.url</code>, and HTTP 44 downloads the MP4.
                   </p>
                   <CodeBlock
                     text={pretty({
@@ -1103,9 +1263,9 @@ function App() {
                     })}
                   />
                   <p>
-                    Mapările de mai sus arată sursele; selectează câmpurile în
-                    Make. Folosește corp JSON structurat / Create JSON pentru a
-                    păstra corect ghilimelele și liniile noi din Gemini.
+                    The mappings above show where each value comes from; pick
+                    the fields in Make. Use a structured JSON body / Create JSON
+                    so the quotes and line breaks from Gemini stay intact.
                   </p>
                 </details>
                 <div className="make-flow">
@@ -1114,7 +1274,7 @@ function App() {
                       <Layers size={22} />
                     </span>
                     <strong>Sheets / Gemini</strong>
-                    <small>Pregătește conținutul</small>
+                    <small>Prepares the content</small>
                   </div>
                   <ChevronRight />
                   <div>
@@ -1122,7 +1282,7 @@ function App() {
                       <Braces size={22} />
                     </span>
                     <strong>HTTP · POST</strong>
-                    <small>Trimite JSON-ul</small>
+                    <small>Sends the JSON</small>
                   </div>
                   <ChevronRight />
                   <div>
@@ -1130,7 +1290,7 @@ function App() {
                       <Clapperboard size={22} />
                     </span>
                     <strong>Json2vid</strong>
-                    <small>Generează MP4</small>
+                    <small>Renders the MP4</small>
                   </div>
                   <ChevronRight />
                   <div>
@@ -1138,7 +1298,7 @@ function App() {
                       <Code2 size={22} />
                     </span>
                     <strong>Webhook Make</strong>
-                    <small>Primește rezultatul</small>
+                    <small>Receives the result</small>
                   </div>
                   <ChevronRight />
                   <div>
@@ -1151,93 +1311,90 @@ function App() {
                 </div>
                 <div className="api-guide">
                   <article>
-                    <h2>1. Trimite videoclipul</h2>
+                    <h2>1. Send the video</h2>
                     <p>
-                      Modul HTTP → Make a request. Metoda <code>POST</code>,
-                      Body content type <code>application/JSON</code>. Trimite
-                      JSON-ul din editor și salvează câmpul <code>project</code>{" "}
-                      din răspuns.
+                      Use the HTTP → Make a request module. Set the method to{" "}
+                      <code>POST</code> and Body content type to{" "}
+                      <code>application/JSON</code>. Send the JSON from the
+                      editor and save the <code>project</code> field from the
+                      response.
                     </p>
                     <CodeBlock
                       text={
-                        "POST /v2/movies\nx-api-key: CHEIA_TA\nContent-Type: application/json\nIdempotency-Key: rand-42-versiunea-1\n\n" +
+                        "POST /v2/movies\nx-api-key: YOUR_KEY\nContent-Type: application/json\nIdempotency-Key: row-42-version-1\n\n" +
                         pretty({
-                          "...": "JSON-ul din editor",
+                          "...": "the JSON from the editor",
                           "client-data": { row: 42 },
-                          webhook_url:
-                            "https://hook.eu1.make.com/WEBHOOKUL_TAU",
+                          webhook_url: "https://hook.eu1.make.com/YOUR_WEBHOOK",
                         })
                       }
                     />
                     <p className="muted">
-                      Exemplul de mai sus este orientativ: înlocuiește „...” cu
-                      câmpurile filmului. Cheia de idempotență previne randările
-                      duplicate pentru aceeași cerere.
+                      The example above is only a guide: replace “...” with your
+                      video's fields. The idempotency key stops duplicate
+                      renders when the same request is sent twice.
                     </p>
                   </article>
                   <article>
-                    <h2>2. Continuă când e gata</h2>
+                    <h2>2. Continue when it's ready</h2>
                     <p>
-                      Într-un al doilea scenariu Make, adaugă{" "}
-                      <strong>Webhooks → Custom webhook</strong>. Copiază URL-ul
-                      în <code>webhook_url</code>. Filtrează după{" "}
-                      <code>movie.status = done</code>, apoi descarcă{" "}
+                      In a second Make scenario, add{" "}
+                      <strong>Webhooks → Custom webhook</strong>. Copy its URL
+                      into <code>webhook_url</code>. Filter on{" "}
+                      <code>movie.status = done</code>, then download{" "}
                       <code>movie.url</code>.
                     </p>
                     <CodeBlock
                       text={pretty({
                         event: "movie.done",
                         success: true,
-                        project: "ID_VIDEO",
+                        project: "VIDEO_ID",
                         movie: {
                           status: "done",
-                          url: "https://serverul-tau/files/…",
+                          url: "https://your-server/files/…",
                           "client-data": { row: 42 },
                         },
                       })}
                     />
                     <p>
-                      Conectează{" "}
-                      <strong>HTTP → Download a file → Router</strong> la
-                      modulele tale de publicare și actualizează rândul din
-                      Sheets. Deduplifică notificările după <code>project</code>
-                      .
+                      Connect{" "}
+                      <strong>HTTP → Download a file → Router</strong> to your
+                      publishing modules and update the row in Sheets.
+                      Deduplicate notifications by <code>project</code>.
                     </p>
                   </article>
                 </div>
                 <details>
-                  <summary>
-                    Preferi verificarea periodică din fluxul actual?
-                  </summary>
+                  <summary>Prefer to poll from your current flow?</summary>
                   <p>
-                    Apelează <code>GET /v2/movies?project=ID_VIDEO</code> cu
-                    aceeași cheie. Continuă doar pentru{" "}
-                    <code>movie.status = done</code>. Pentru <code>error</code>,
-                    salvează <code>movie.message</code>. Reîncearcă
-                    pending/running cu o limită de timp; o pauză fixă nu
-                    garantează finalizarea.
+                    Call <code>GET /v2/movies?project=VIDEO_ID</code> with the
+                    same key. Only continue when{" "}
+                    <code>movie.status = done</code>. On <code>error</code>,
+                    save <code>movie.message</code>. Retry pending and running
+                    jobs with a time limit, because a fixed wait doesn't
+                    guarantee the render has finished.
                   </p>
                 </details>
                 <details>
-                  <summary>Ce acceptă formatul JSON?</summary>
+                  <summary>What does the JSON format support?</summary>
                   <p>
-                    Scene cu durată explicită sau calculată din media, text,
-                    imagini și video prin HTTPS, imagini FLUX 1.1 Pro din
-                    prompt, piste audio, voce locală în engleză sau Azure,
-                    variabile <code>{"{{nume}}"}</code>, format
-                    vertical/landscape/pătrat, SD/HD/Full HD. Sunetul clipurilor
-                    video este ignorat: adaugă o pistă audio explicită. HTML,
-                    componentele JSON2Video și tranzițiile între scene nu sunt
-                    implementate. Fade-in/out, zoom și subtitrările sincronizate
-                    cu vocea Azure sunt disponibile. Vocea locală folosește
-                    Windows sau eSpeak NG; provider: azure necesită cheile Azure
-                    pe server. Subtitrările locale necesită explicit timing:
-                    estimated (aproximativ). Limita este de 900 secunde pe film
-                    și 300 pe scenă.
+                    Scenes with an explicit duration or one calculated from the
+                    media; text; images and video over HTTPS; FLUX 1.1 Pro
+                    images from a prompt; audio tracks; a local English voice or
+                    Azure; <code>{"{{name}}"}</code> variables; vertical,
+                    landscape or square formats; and SD/HD/Full HD. Audio from
+                    video clips is ignored, so add an explicit audio track.
+                    HTML, JSON2Video components and transitions between scenes
+                    aren't implemented. Fade-in/out, zoom and subtitles synced
+                    to the Azure voice are available. The local voice uses
+                    Windows or eSpeak NG, while provider: azure needs your Azure
+                    keys on the server. Local subtitles need an explicit
+                    timing: estimated (approximate). The limit is 900 seconds
+                    per video and 300 per scene.
                   </p>
                 </details>
                 <div className="source-links">
-                  Documentație verificată:
+                  Checked documentation:
                   <a
                     href="https://apps.make.com/http"
                     target="_blank"
@@ -1364,7 +1521,7 @@ function ScenePreview({ movie, scene }) {
               ) : e.type === "image" && e.src ? (
                 <img
                   key={i}
-                  alt="Imagine din scenă"
+                  alt="Image from the scene"
                   src={e.src}
                   referrerPolicy="no-referrer"
                   style={{ ...style, objectFit: e.fit }}
@@ -1374,8 +1531,8 @@ function ScenePreview({ movie, scene }) {
                   <Film size={60} />
                   <span>
                     {e.type === "image"
-                      ? "Imagine FLUX · generată la randare"
-                      : "Clip video · vizibil după randare"}
+                      ? "FLUX image · generated at render time"
+                      : "Video clip · visible after rendering"}
                   </span>
                 </div>
               );

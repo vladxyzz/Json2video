@@ -55,16 +55,23 @@ const localRequest = (req) =>
   localMode &&
   ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress) &&
   /^localhost(?::\d+)?$|^127\.0\.0\.1(?::\d+)?$/.test(req.headers.host || "");
+// Public, key-free facts about this deployment. The UI needs them before a key
+// exists (connect screen), so they must not depend on the authenticated /api/config.
+const deployment = {
+  publicUrl,
+  publicReady: publicUrl.startsWith("https:"),
+};
 app.get("/api/session", (req, res) => {
-  if (!localRequest(req)) return res.json({ local: false });
-  res.set("Cache-Control", "no-store").json({ local: true, key: apiKey });
+  res.set("Cache-Control", "no-store");
+  if (!localRequest(req)) return res.json({ local: false, ...deployment });
+  res.json({ local: true, key: apiKey, ...deployment });
 });
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 const auth = (req, res, next) => {
   if (!equal(req.get("x-api-key") || "", apiKey))
     return res.status(401).json({
       success: false,
-      message: "Cheia API lipsește sau nu este validă.",
+      message: "The API key is missing or invalid.",
     });
   next();
 };
@@ -85,10 +92,10 @@ app.get("/api/config", (_req, res) =>
     engine: fs.existsSync(ffmpeg) ? "ready" : "missing",
     speech:
       process.platform === "win32"
-        ? "Windows (engleză)"
+        ? "Windows (English)"
         : process.env.ESPEAK_PATH
           ? "eSpeak NG"
-          : "neconfigurat",
+          : "not configured",
     azureSpeech: !!(
       process.env.AZURE_SPEECH_KEY && process.env.AZURE_SPEECH_REGION
     ),
@@ -129,7 +136,7 @@ app.post("/v2/movies", (req, res) => {
   if (!parsed.success)
     return res.status(422).json({
       success: false,
-      message: "JSON-ul nu este valid.",
+      message: "The JSON is not valid.",
       errors: parsed.error.issues,
     });
   const configuration = providerIssues(parsed.data);
@@ -154,14 +161,14 @@ app.post("/v2/movies", (req, res) => {
     if (found.hash !== hash)
       return res.status(409).json({
         success: false,
-        message: "Aceeași Idempotency-Key a fost folosită pentru alt conținut.",
+        message: "The same Idempotency-Key was used for different content.",
       });
     return res.json({ success: true, project: found.id, reused: true });
   }
   if (store.pending().length >= 50)
     return res.status(429).json({
       success: false,
-      message: "Coada este plină. Reîncearcă mai târziu.",
+      message: "The queue is full. Try again later.",
     });
   const job = {
     id: crypto.randomBytes(8).toString("hex"),
@@ -179,7 +186,7 @@ app.get("/v2/movies", (req, res) => {
       ? res.json({ success: true, movie: publicJob(job) })
       : res
           .status(404)
-          .json({ success: false, message: "Videoclipul nu există." });
+          .json({ success: false, message: "That video does not exist." });
   }
   const jobs = store.list();
   res.json({ success: true, movies: jobs.map(publicJob), count: jobs.length });
@@ -188,14 +195,14 @@ app.get("/api/movies/:id/source", (req, res) => {
   const job = store.get(req.params.id);
   return job
     ? res.json(job.input)
-    : res.status(404).json({ message: "Videoclipul nu există." });
+    : res.status(404).json({ message: "That video does not exist." });
 });
 app.post("/api/movies/:id/webhook/retry", (req, res) => {
   const job = store.get(req.params.id);
   if (!job || !job.input.webhook_url || !["done", "error"].includes(job.status))
     return res
       .status(400)
-      .json({ message: "Acest job nu are un webhook finalizat." });
+      .json({ message: "This job has no finished webhook." });
   store.update(job.id, {
     webhook: { state: "pending", attempts: 0, nextAttempt: Date.now() },
   });
@@ -212,7 +219,7 @@ app.get("/files/:file", (req, res) => {
   )
     return res.status(403).json({
       message:
-        "Link invalid sau expirat. Obține un link nou din starea videoclipului.",
+        "Invalid or expired link. Get a fresh one from the video status.",
     });
   const job = store.get(match[1]);
   if (job?.status !== "done") return res.sendStatus(404);
@@ -244,10 +251,10 @@ app.use((error, _req, res, _next) =>
     success: false,
     message:
       error.type === "entity.parse.failed"
-        ? "Corpul cererii nu este JSON valid."
+        ? "The request body is not valid JSON."
         : error.status === 413
-          ? "JSON-ul depășește 512 KB."
-          : "Eroare internă. Verifică jurnalul serverului.",
+          ? "The JSON is larger than 512 KB."
+          : "Internal error. Check the server log.",
   }),
 );
 const server = app.listen(port, host, () => {

@@ -44,7 +44,7 @@ export const store = {
       "pending",
       job.created_at,
       JSON.stringify(job.input),
-      JSON.stringify({ progress: 0, message: "În așteptare" }),
+      JSON.stringify({ progress: 0, message: "Waiting" }),
       key || null,
       hash,
     );

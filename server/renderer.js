@@ -43,7 +43,7 @@ export function probeDuration(file, cwd) {
         ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])
         : 0;
       if (seconds > 0 && Number.isFinite(seconds)) resolve(seconds);
-      else reject(new Error("Nu se poate determina durata fișierului media."));
+      else reject(new Error("Could not determine the media file duration."));
     });
   });
 }
@@ -69,7 +69,7 @@ export function runFfmpeg(args, cwd) {
         ? resolve()
         : reject(
             new Error(
-              `FFmpeg (${code}): ${error || "Procesul a fost întrerupt."}`,
+              `FFmpeg (${code}): ${error || "The process was interrupted."}`,
             ),
           );
     });
@@ -193,13 +193,13 @@ async function speech(element, target) {
       const timer = setTimeout(() => child.kill(), 60000);
       child.on("error", (e) => {
         clearTimeout(timer);
-        reject(new Error(`Vocea locală nu este disponibilă: ${e.message}`));
+        reject(new Error(`The local voice is not available: ${e.message}`));
       });
       child.on("close", (code) => {
         clearTimeout(timer);
         code === 0
           ? resolve()
-          : reject(new Error(`Vocea locală a eșuat: ${error}`));
+          : reject(new Error(`The local voice failed: ${error}`));
       });
     });
     return { words: [] };
@@ -274,7 +274,7 @@ export async function renderMovie(
       const scene = movie.scenes[s];
       onProgress(
         Math.round(5 + (s / movie.scenes.length) * 80),
-        `Pregătire media · scena ${s + 1}`,
+        `Preparing media · scene ${s + 1}`,
       );
       for (const el of scene.elements.filter((e) =>
         ["voice", "audio", "video"].includes(e.type),
@@ -293,11 +293,11 @@ export async function renderMovie(
           : Math.ceil(Math.max(...scene.elements.map(naturalEnd)) * fps) / fps;
       if (!Number.isFinite(duration) || duration < 0.25 || duration > 300)
         throw new Error(
-          `Scena ${s + 1}: durata trebuie să fie între 0.25 și 300 secunde.`,
+          `Scene ${s + 1}: duration must be between 0.25 and 300 seconds.`,
         );
       sceneDurations.push(duration);
       if (sceneDurations.reduce((n, d) => n + d, 0) > 900)
-        throw new Error("Durata totală maximă este 900 secunde.");
+        throw new Error("The total duration is limited to 900 seconds.");
       const elements = scene.elements.flatMap((el) => {
         if (el.type !== "subtitles") return [el];
         const voice = scene.elements.find(
@@ -319,7 +319,7 @@ export async function renderMovie(
       });
       onProgress(
         Math.round(5 + (s / movie.scenes.length) * 80),
-        `Randare scenă ${s + 1} din ${movie.scenes.length}`,
+        `Rendering scene ${s + 1} of ${movie.scenes.length}`,
       );
       const args = [
         "-f",
@@ -345,7 +345,7 @@ export async function renderMovie(
           start + length > duration + 0.05
         )
           throw new Error(
-            `Scena ${s + 1}: elementul depășește durata calculată.`,
+            `Scene ${s + 1}: an element runs past the calculated duration.`,
           );
         if (el.type === "audio" || el.type === "voice") {
           const file = await asset(el);
@@ -452,7 +452,7 @@ export async function renderMovie(
       );
       await runFfmpeg(args, dir);
     }
-    onProgress(88, "Asamblare MP4");
+    onProgress(88, "Assembling MP4");
     await fs.writeFile(
       path.join(dir, "concat.txt"),
       parts.map((p) => `file '${p}'`).join("\n"),
@@ -482,7 +482,7 @@ export async function renderMovie(
           file = await asset(el);
         const length = el.duration > 0 ? el.duration : total - el.start;
         if (length <= 0 || el.start + length > total + 0.05)
-          throw new Error("Pista audio depășește durata calculată a filmului.");
+          throw new Error("The audio track is longer than the calculated video duration.");
         args.push(
           "-protocol_whitelist",
           "file,pipe",

@@ -3,7 +3,7 @@ import { resolveTemplate } from "./templates.js";
 
 const color = z
   .string()
-  .regex(/^#[0-9a-fA-F]{6}$/, "Folosește o culoare HEX, de exemplu #141820.");
+  .regex(/^#[0-9a-fA-F]{6}$/, "Use a HEX color, for example #141820.");
 const time = z.number().min(0).max(900);
 const metadata = {
   id: z.string().max(120).optional(),
@@ -23,7 +23,7 @@ const coord = z.union([
 const url = z
   .string()
   .url()
-  .refine((v) => /^https:\/\//i.test(v), "Este necesar un URL HTTPS public.");
+  .refine((v) => /^https:\/\//i.test(v), "A public HTTPS URL is required.");
 const common = {
   ...metadata,
   start: time.default(0),
@@ -110,7 +110,7 @@ export const elementSchema = z.discriminatedUnion("type", [
 export const movieSchema = z
   .strictObject({
     ...metadata,
-    name: z.string().min(1).max(120).default("Video fără titlu"),
+    name: z.string().min(1).max(120).default("Untitled video"),
     quality: z.enum(["low", "medium", "high"]).default("high"),
     resolution: z.enum(["full-hd", "hd", "sd"]).default("hd"),
     "aspect-ratio": z.enum(["9:16", "16:9", "1:1"]).default("16:9"),
@@ -149,7 +149,7 @@ export const movieSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["scenes"],
-        message: "Durata totală maximă este 900 secunde.",
+        message: "The total duration is limited to 900 seconds.",
       });
     movie.scenes.forEach((s, i) =>
       s.elements.forEach((e, j) => {
@@ -161,14 +161,14 @@ export const movieSchema = z
           ctx.addIssue({
             code: "custom",
             path: ["scenes", i, "elements", j],
-            message: "Elementul trebuie să se încadreze în durata scenei.",
+            message: "The element must fit within the scene duration.",
           });
         if (["left", "right"].includes(e.y) || ["top", "bottom"].includes(e.x))
           ctx.addIssue({
             code: "custom",
             path: ["scenes", i, "elements", j],
             message:
-              "x acceptă left/center/right; y acceptă top/center/bottom.",
+              "x accepts left/center/right; y accepts top/center/bottom.",
           });
         if (
           e.type === "image" &&
@@ -177,7 +177,7 @@ export const movieSchema = z
           ctx.addIssue({
             code: "custom",
             path: ["scenes", i, "elements", j],
-            message: "Imaginea necesită fie src, fie prompt și model.",
+            message: "An image needs either src, or a prompt and a model.",
           });
         if (
           e["font-size"] &&
@@ -186,7 +186,7 @@ export const movieSchema = z
           ctx.addIssue({
             code: "custom",
             path: ["scenes", i, "elements", j, "font-size"],
-            message: "Dimensiunea fontului trebuie să fie între 12 și 250px.",
+            message: "Font size must be between 12 and 250px.",
           });
         if (
           e.type === "subtitles" &&
@@ -200,7 +200,7 @@ export const movieSchema = z
             code: "custom",
             path: ["scenes", i, "elements", j],
             message:
-              "Subtitrările sincronizate necesită în aceeași scenă o voce Azure cu același text. Pentru temporizare aproximativă, setează timing: estimated.",
+              "Synced subtitles need an Azure voice with the same text in the same scene. For approximate timing, set timing: estimated.",
           });
       }),
     );
@@ -213,7 +213,7 @@ export const movieSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["elements", i],
-          message: "Pista audio depășește durata filmului.",
+          message: "The audio track is longer than the video.",
         });
     });
     movie.scenes.forEach((s, i) => {
@@ -229,7 +229,7 @@ export const movieSchema = z
           code: "custom",
           path: ["scenes", i, "duration"],
           message:
-            "Durata automată necesită voce, audio, video sau un element cu durată explicită.",
+            "Automatic duration needs a voice, audio, video, or an element with an explicit duration.",
         });
     });
   });
@@ -237,7 +237,7 @@ export function interpolate(value, variables) {
   if (typeof value === "string")
     return value.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, key) => {
       if (!Object.hasOwn(variables, key))
-        throw new Error(`Variabila „${key}” nu este definită.`);
+        throw new Error(`Variable “${key}” is not defined.`);
       return String(variables[key]);
     });
   if (Array.isArray(value)) return value.map((v) => interpolate(v, variables));
