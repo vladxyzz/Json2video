@@ -1,31 +1,30 @@
 {
   "id": "q5jn4w33",
-  "comment": "AI Automated Longform Video Template",
+  "comment": "AI Automated Longform Video Template (vertical 9:16, 1080x1920)",
   "resolution": "full-hd",
+  "aspect-ratio": "9:16",
   "quality": "high",
   "scenes": [
     {
       "id": "qq7w3xq1",
       "comment": "Intro Scene",
+      "background-color": "#000000",
       "elements": [
         {
           "id": "q80aeswj",
           "type": "video",
           "src": "{{intro_video}}",
           "duration": 4,
-          "width": 1920,
-          "height": 1080,
-          "x": 0,
-          "y": 0
+          "fit": "contain"
         },
         {
           "id": "quxv7l8n",
           "type": "text",
           "text": "{{title}}",
-          "font-size": "48px",
+          "font-size": "64px",
           "color": "#FFFFFF",
           "x": "center",
-          "y": "center",
+          "y": "78%",
           "style": "shadow"
         }
       ]
@@ -39,11 +38,10 @@
           "type": "image",
           "prompt": "{{scene_1_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qzboxfk3",
@@ -55,9 +53,14 @@
           "id": "qql49fg3",
           "type": "subtitles",
           "text": "{{scene_1_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -70,11 +73,10 @@
           "type": "image",
           "prompt": "{{scene_2_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qnqoy0js",
@@ -86,9 +88,14 @@
           "id": "qbod3op5",
           "type": "subtitles",
           "text": "{{scene_2_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -101,11 +108,10 @@
           "type": "image",
           "prompt": "{{scene_3_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qb1wrs98",
@@ -117,9 +123,14 @@
           "id": "qjuvwls9",
           "type": "subtitles",
           "text": "{{scene_3_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -132,11 +143,10 @@
           "type": "image",
           "prompt": "{{scene_4_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qvc0offk",
@@ -148,9 +158,14 @@
           "id": "qsnmi9wa",
           "type": "subtitles",
           "text": "{{scene_4_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -163,11 +178,10 @@
           "type": "image",
           "prompt": "{{scene_5_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qjnteiti",
@@ -179,9 +193,14 @@
           "id": "q82o5rps",
           "type": "subtitles",
           "text": "{{scene_5_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -194,11 +213,10 @@
           "type": "image",
           "prompt": "{{scene_6_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "q0ifxy6z",
@@ -210,9 +228,14 @@
           "id": "q1dim5qa",
           "type": "subtitles",
           "text": "{{scene_6_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -225,11 +248,10 @@
           "type": "image",
           "prompt": "{{scene_7_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qmvixbkc",
@@ -241,9 +263,14 @@
           "id": "qey4g8af",
           "type": "subtitles",
           "text": "{{scene_7_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -256,11 +283,10 @@
           "type": "image",
           "prompt": "{{scene_8_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qwtpod7z",
@@ -272,9 +298,14 @@
           "id": "q5nfsnyz",
           "type": "subtitles",
           "text": "{{scene_8_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -287,11 +318,10 @@
           "type": "image",
           "prompt": "{{scene_9_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qemi6ihz",
@@ -303,9 +333,14 @@
           "id": "qvstprnl",
           "type": "subtitles",
           "text": "{{scene_9_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     },
@@ -318,11 +353,10 @@
           "type": "image",
           "prompt": "{{scene_10_prompt}}",
           "model": "{{image_model}}",
-          "width": 1920,
-          "height": 1080,
-          "zoom": 10,
+          "zoom": 6,
           "fade-in": 0.5,
-          "fade-out": 0.5
+          "fade-out": 0.5,
+          "fit": "cover"
         },
         {
           "id": "qajegd8c",
@@ -334,9 +368,14 @@
           "id": "qj1195hk",
           "type": "subtitles",
           "text": "{{scene_10_voice}}",
-          "font-size": "34px",
+          "font-size": "72px",
           "color": "#FFFFFF",
-          "y": "85%"
+          "word-color": "#FFD400",
+          "max-words": 4,
+          "font-family": "Poppins",
+          "word-scale": 1.15,
+          "y": "66%",
+          "style": "shadow"
         }
       ]
     }

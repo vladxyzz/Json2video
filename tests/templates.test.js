@@ -34,12 +34,14 @@ test("șablonul original păstrează eroarea intro_video și acceptă cele 25 de
   assert.match(validateMovie(source).error.issues[0].message, /intro_video/);
   const result = validateMovie({ template: makeTemplateId, variables });
   assert.equal(result.success, true, JSON.stringify(result.error));
-  assert.deepEqual(dimensions(result.data), [1920, 1080]);
+  assert.deepEqual(dimensions(result.data), [1080, 1920]);
   assert.equal(result.data.scenes.length, 11);
   assert.equal(result.data.scenes[1].elements[1].provider, "azure");
   assert.equal(result.data.scenes[1].elements[1].voice, "en-US-GuyNeural");
-  assert.equal(result.data.scenes[1].elements[2].y, "85%");
-  assert.equal(result.data.scenes[0].elements[1]["font-size"], "48px");
+  assert.equal(result.data.scenes[1].elements[2].y, "66%");
+  assert.equal(result.data.scenes[1].elements[2]["word-color"], "#FFD400");
+  assert.equal(result.data.scenes[1].elements[2]["max-words"], 4);
+  assert.equal(result.data.scenes[0].elements[1]["font-size"], "64px");
   assert.equal(result.data.elements[0]["fade-out"], 2);
   assert.equal(JSON.stringify(source), before);
   assert.throws(() => resolveTemplate({ template: "missing" }), /does not exist/);
@@ -65,6 +67,93 @@ test("subtitrările folosesc offseturile vocii și refuză o sincronizare invent
     /did not return subtitle timings/,
   );
   assert.equal(subtitleCues({ text, timing: "estimated" }, null, 3).length, 2);
+});
+test("karaoke: un cue pe cuvânt, fără goluri sau suprapuneri, cu cuvântul evidențiat", () => {
+  const text = "One two three four five six seven.";
+  const words = [...text.matchAll(/\S+/g)].map((m, i) => ({
+    offset: m.index,
+    length: m[0].length,
+    start: i * 0.3,
+    end: i * 0.3 + 0.2,
+  }));
+  const element = {
+    text,
+    timing: "speech",
+    "word-color": "#FFD400",
+    "max-words": 4,
+  };
+  const cues = subtitleCues(element, { words }, 3);
+  assert.equal(cues.length, 7);
+  assert.deepEqual(
+    cues.map((c) => c.highlight),
+    [0, 1, 2, 3, 0, 1, 2],
+  );
+  assert.equal(cues[0].text, "One two three four");
+  assert.equal(cues[4].text, "five six seven.");
+  for (let i = 1; i < cues.length; i++) {
+    const gap = cues[i].start - (cues[i - 1].start + cues[i - 1].duration);
+    assert.ok(Math.abs(gap) < 1e-9, `cue ${i} gap ${gap}`);
+  }
+  const last = cues.at(-1);
+  assert.ok(last.start + last.duration <= 3 + 1e-9);
+  // A voice that splits "well-known" into two tokens must not shift the highlight.
+  const hyphen = "A well-known fact today";
+  const split = [
+    { offset: 0, length: 1, start: 0, end: 0.2 },
+    { offset: 2, length: 4, start: 0.3, end: 0.5 },
+    { offset: 7, length: 5, start: 0.6, end: 0.8 },
+    { offset: 13, length: 4, start: 0.9, end: 1.1 },
+    { offset: 18, length: 5, start: 1.2, end: 1.4 },
+  ];
+  const marks = subtitleCues(
+    { text: hyphen, timing: "speech", "word-color": "#FFD400", "max-words": 6 },
+    { words: split },
+    2,
+  ).map((c) => c.highlight);
+  assert.deepEqual(marks, [0, 1, 1, 2, 3]);
+});
+test("sem word-color, subtitrările se comportă exact ca înainte (max-words schimbă doar gruparea)", () => {
+  const text = "One two three four five six seven eight nine.";
+  const words = [...text.matchAll(/\S+/g)].map((m, i) => ({
+    offset: m.index,
+    length: m[0].length,
+    start: i * 0.3,
+    end: i * 0.3 + 0.2,
+  }));
+  const plain = subtitleCues({ text, timing: "speech" }, { words }, 4);
+  assert.equal(plain.length, 2);
+  assert.ok(plain.every((c) => c.highlight === undefined));
+  const grouped = subtitleCues(
+    { text, timing: "speech", "max-words": 3 },
+    { words },
+    4,
+  );
+  assert.equal(grouped.length, 3);
+  assert.ok(grouped.every((c) => c.highlight === undefined));
+});
+test("schema: word-color, max-words și all-caps sunt validate strict", () => {
+  const scene = (extra) => ({
+    scenes: [
+      {
+        duration: 2,
+        elements: [
+          { type: "subtitles", text: "Hello there", timing: "estimated", ...extra },
+        ],
+      },
+    ],
+  });
+  assert.equal(validateMovie(scene({})).data.scenes[0].elements[0]["all-caps"], false);
+  assert.equal(
+    validateMovie(scene({ "word-color": "#FFD400", "max-words": 4, "all-caps": true }))
+      .success,
+    true,
+  );
+  assert.equal(validateMovie(scene({ "word-color": "yellow" })).success, false);
+  assert.equal(validateMovie(scene({ "max-words": 0 })).success, false);
+  assert.equal(validateMovie(scene({ "max-words": 13 })).success, false);
+  assert.equal(validateMovie(scene({ "max-words": 2.5 })).success, false);
+  assert.equal(validateMovie(scene({ "all-caps": "yes" })).success, false);
+  assert.equal(validateMovie(scene({ "word-colour": "#FFD400" })).success, false);
 });
 test("FLUX: model aprobat, dimensiuni valide, polling, descărcare și respingerea gazdelor străine", async () => {
   const previous = process.env.BFL_API_KEY;

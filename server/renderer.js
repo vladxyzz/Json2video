@@ -1,3 +1,4 @@
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -9,6 +10,83 @@ import { download } from "./network.js";
 import { outputDir, workDir } from "./config.js";
 import { azureSpeech, generateImage } from "./providers.js";
 import { subtitleCues } from "./subtitles.js";
+import { buildAss, fontDir, fonts, installFonts } from "./ass.js";
+
+// Text rendered by sharp/librsvg looks fonts up through fontconfig. Point it at
+// the bundled fonts (and keep the system ones) before sharp draws anything.
+function configureFontconfig() {
+  if (process.env.FONTCONFIG_FILE) return;
+  try {
+    const dir = fontDir.replace(/\\/g, "/");
+    const conf = path.join(workDir, "fonts.conf");
+    fsSync.writeFileSync(
+      conf,
+      `<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><include ignore_missing="yes">/etc/fonts/fonts.conf</include><dir>${dir}</dir><cachedir>${path.join(workDir, "fontcache").replace(/\\/g, "/")}</cachedir></fontconfig>`,
+    );
+    process.env.FONTCONFIG_FILE = conf;
+  } catch {}
+}
+configureFontconfig();
+// "ass" burns subtitles in with one libass filter per scene; "png" keeps the
+// older one-image-per-cue path as a fallback (J2V_SUBTITLES=png in .env).
+let assProbe;
+// The first render checks once that this FFmpeg can really draw ASS with the
+// bundled fonts; if not, subtitles quietly fall back to the PNG path.
+async function subtitleEngine() {
+  if (process.env.J2V_SUBTITLES === "png") return "png";
+  assProbe ??= (async () => {
+    const dir = path.join(workDir, "_ass-probe");
+    try {
+      await fs.mkdir(dir, { recursive: true });
+      const fontsDir = await installFonts(dir);
+      await fs.writeFile(
+        path.join(dir, "probe.ass"),
+        buildAss(
+          [
+            {
+              element: {
+                color: "#FFFFFF",
+                "font-size": 20,
+                "font-family": "Poppins",
+                x: "center",
+                y: "center",
+                "text-align": "center",
+                style: "shadow",
+              },
+              cues: [{ text: "probe", start: 0, duration: 1 }],
+            },
+          ],
+          128,
+          128,
+          { wrapText, coordinate },
+        ),
+      );
+      await runFfmpeg(
+        [
+          "-f",
+          "lavfi",
+          "-i",
+          "color=c=black:s=128x128:d=0.5",
+          "-vf",
+          `ass=probe.ass:fontsdir=${fontsDir}`,
+          "-frames:v",
+          "1",
+          "-f",
+          "null",
+          "-",
+        ],
+        dir,
+      );
+      return "ass";
+    } catch (error) {
+      console.warn(
+        `ASS subtitles are not available (${error.message}); using PNG subtitles.`,
+      );
+      return "png";
+    }
+  })();
+  return assProbe;
+}
 
 export const ffmpeg = process.env.FFMPEG_PATH || ffmpegStatic;
 export function probeDuration(file, cwd) {
@@ -87,8 +165,8 @@ const escapeXml = (s) =>
         "'": "&apos;",
       })[c],
   );
-export function wrapText(text, width, fontSize) {
-  const max = Math.max(4, Math.floor(width / (fontSize * 0.59)));
+export function wrapText(text, width, fontSize, charWidth = 0.59) {
+  const max = Math.max(4, Math.floor(width / (fontSize * charWidth)));
   return text.split("\n").flatMap((line) => {
     const words = line.split(/\s+/);
     const lines = [];
@@ -107,7 +185,8 @@ export function wrapText(text, width, fontSize) {
 async function textLayer(element, W, H, target) {
   const width = element.width || Math.round(W * 0.88),
     size = parseFloat(element["font-size"]);
-  const lines = wrapText(element.text, width, size),
+  const shown = element["all-caps"] ? element.text.toUpperCase() : element.text;
+  const lines = wrapText(shown, width, size, element["all-caps"] ? 0.68 : 0.59),
     lineHeight = size * 1.25,
     height =
       element.height || Math.ceil(lines.length * lineHeight + size * 0.25);
@@ -121,7 +200,29 @@ async function textLayer(element, W, H, target) {
     element.style === "shadow"
       ? ` stroke="#111111" stroke-width="${Math.max(2, size / 14)}" stroke-linejoin="round" paint-order="stroke"`
       : "";
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><g fill="${element.color}" font-family="DejaVu Sans, Arial, sans-serif" font-size="${size}" font-weight="${element["font-weight"]}" text-anchor="${anchor}"${shadow}>${lines.map((line, i) => `<text x="${x}" y="${size + i * lineHeight}">${escapeXml(line)}</text>`).join("")}</g></svg>`;
+  const family =
+      element["font-family"] === "Poppins"
+        ? `${fonts.Poppins.name}, DejaVu Sans, Arial, sans-serif`
+        : "DejaVu Sans, Arial, sans-serif",
+    // Poppins is bundled as a single ExtraBold file; a bold flag would only fake more.
+    weight =
+      element["font-family"] === "Poppins" ? "normal" : element["font-weight"];
+  // Karaoke: `highlight` is the index of the word being spoken, counted across
+  // all wrapped lines; it is drawn in `word-color`.
+  const highlight = element["word-color"] ? element.highlight : undefined;
+  let counted = 0;
+  const lineMarkup = (line) =>
+    highlight === undefined
+      ? escapeXml(line)
+      : line
+          .split(" ")
+          .map((word) =>
+            counted++ === highlight
+              ? `<tspan fill="${element["word-color"]}"${element["word-scale"] > 1 ? ` font-size="${size * element["word-scale"]}"` : ""}>${escapeXml(word)}</tspan>`
+              : escapeXml(word),
+          )
+          .join(" ");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><g fill="${element.color}" font-family="${family}" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}"${shadow}>${lines.map((line, i) => `<text x="${x}" y="${size + i * lineHeight}" xml:space="preserve">${lineMarkup(line)}</text>`).join("")}</g></svg>`;
   await sharp(Buffer.from(svg)).png().toFile(target);
   return { width, height };
 }
@@ -298,6 +399,8 @@ export async function renderMovie(
       sceneDurations.push(duration);
       if (sceneDurations.reduce((n, d) => n + d, 0) > 900)
         throw new Error("The total duration is limited to 900 seconds.");
+      const subtitleItems = [],
+        engine = await subtitleEngine();
       const elements = scene.elements.flatMap((el) => {
         if (el.type !== "subtitles") return [el];
         const voice = scene.elements.find(
@@ -309,12 +412,21 @@ export async function renderMovie(
           el.duration > 0 ? el.duration : duration - start,
           data?.duration || duration - start,
         );
-        return subtitleCues(el, data, length).map((cue) => ({
+        const cues = subtitleCues(el, data, length);
+        if (engine === "ass") {
+          subtitleItems.push({
+            element: el,
+            cues: cues.map((cue) => ({ ...cue, start: start + cue.start })),
+          });
+          return [];
+        }
+        return cues.map((cue) => ({
           ...el,
           type: "text",
           text: cue.text,
           start: start + cue.start,
           duration: cue.duration,
+          highlight: cue.highlight,
         }));
       });
       onProgress(
@@ -407,7 +519,19 @@ export async function renderMovie(
         v = next;
         input++;
       }
-      filters.push(`[${v}]format=yuv420p[outv]`);
+      if (subtitleItems.length) {
+        // One libass filter draws every subtitle of the scene.
+        const fontsDir = await installFonts(dir);
+        const script = `subtitles-${s}.ass`;
+        await fs.writeFile(
+          path.join(dir, script),
+          buildAss(subtitleItems, W, H, { wrapText, coordinate }),
+          "utf8",
+        );
+        filters.push(
+          `[${v}]format=yuv420p,ass=${script}:fontsdir=${fontsDir}[outv]`,
+        );
+      } else filters.push(`[${v}]format=yuv420p[outv]`);
       filters.push(
         `[1:a]${audios.map((a) => `[${a}]`).join("")}amix=inputs=${audios.length + 1}:duration=first:normalize=0,alimiter=limit=0.95[outa]`,
       );

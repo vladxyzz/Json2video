@@ -32,3 +32,17 @@
 - HTTPS public, modificarea efectivă a URL-urilor Make sau publicare în conturi sociale. Toate nodurile Make au fost inspectate în contul autentificat; scenariul nu a fost rulat sau salvat.
 - Apeluri reale Azure Speech și Black Forest Labs: cheile lipsesc. Nu se revendică un test end-to-end cu aceste servicii plătite.
 - Teste de încărcare pentru utilizatori multipli; aplicația este gândită pentru un singur workspace și un singur worker.
+
+## Actualizare: format vertical și subtitrări karaoke
+
+- `examples/make-longform.json` este acum vertical (`9:16`, `full-hd` ⇒ 1080×1920), cu subtitrări `word-color #FFD400`, `max-words 4`, `y 66%`. Contractul Make (25 variabile, `intro_video` nedefinit implicit) nu s-a schimbat.
+- Teste noi: cue-uri karaoke (număr, indice `highlight`, fără goluri sau suprapuneri, cuvinte despărțite de voce), comportament identic fără `word-color`, validarea strictă a câmpurilor noi și un MP4 vertical real în care cuvântul galben se mută între două momente.
+- Măsurat local (Windows, aceeași scenă de 3×8s, 1080×1920, fundal simplu): 30 s fără `word-color`, 48 s cu `word-color`. Pe VPS-ul 1 vCPU timpul total crește corespunzător; nu a fost măsurat acolo și nici cu Azure/FLUX reale.
+
+## Actualizare: font Poppins, efect „pop" și subtitrări ASS
+
+- Subtitrările se desenează acum cu un script ASS per scenă (`server/ass.js`) și filtrul libass din FFmpeg, cu fonturile din `server/fonts/` (Poppins ExtraBold, DejaVu Sans Bold) transmise prin `fontsdir`. Titlurile (`text`) citesc aceleași fonturi prin fontconfig/sharp.
+- Câmpuri noi, opționale: `font-family` (`DejaVu Sans` | `Poppins`) și `word-scale` (1–1.6). Șablonul Make folosește `Poppins` și `1.15`.
+- Același test de 3×8 s, 1080×1920 (Windows): 30 s subtitrări simple (PNG), 48 s karaoke PNG, **29,7 s karaoke ASS**. Pe VPS-ul cu 1 vCPU nu a fost măsurat.
+- Teste noi: script ASS (culori BGR, tag-uri de pop, evenimente unite, escape), Poppins aplicat real pe titlu și pe subtitrări (lățime diferită față de fontul implicit), varianta PNG (`J2V_SUBTITLES=png`) încă funcțională.
+- Neverificat: randarea în containerul Docker (ffmpeg din Debian); verificarea automată de la prima randare cade pe PNG dacă libass nu merge acolo.

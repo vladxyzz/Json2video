@@ -49,6 +49,7 @@ const text = z.strictObject({
   color: color.default("#ffffff"),
   "font-weight": z.enum(["normal", "bold"]).default("bold"),
   "text-align": z.enum(["left", "center", "right"]).default("center"),
+  "font-family": z.enum(["DejaVu Sans", "Poppins"]).default("DejaVu Sans"),
 });
 const image = z.strictObject({
   type: z.literal("image"),
@@ -98,6 +99,10 @@ const subtitles = text.extend({
   y: coord.default("85%"),
   style: z.enum(["plain", "shadow"]).default("shadow"),
   timing: z.enum(["speech", "estimated"]).default("speech"),
+  "word-color": color.optional(),
+  "word-scale": z.number().min(1).max(1.6).optional(),
+  "max-words": z.number().int().min(1).max(12).optional(),
+  "all-caps": z.boolean().default(false),
 });
 export const elementSchema = z.discriminatedUnion("type", [
   text,

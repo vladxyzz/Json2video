@@ -70,6 +70,8 @@ Fluxul din captura inițială: Google Sheets Search Rows → Gemini Generate a r
 - Foaia Google furnizată: <https://docs.google.com/spreadsheets/d/12fqfrlZ1Qv39yV2LPdehvuUJKQE-JM325I0gLPQCQGY/edit>.
 - Fișierul atașat: `C:\Users\vladp\Desktop\json2video_clone\json_answer.txt`; copia proiectului `examples/make-longform.json` este păstrată exact.
 
+Actualizare: șablonul este acum vertical 9:16 (1080×1920) cu subtitrări karaoke ASS, font Poppins și efect pop (`word-color`, `max-words`, `font-family`, `word-scale`); vezi `README.md` și `docs/VALIDATION.md`. Descrierea de mai jos păstrează structura originală.
+
 Șablonul are 11 scene (intro 4 secunde + 10 scene), 10 imagini promptate, 10 voci, 10 elemente subtitles, muzică globală și 25 placeholder-e: `intro_video`, `title`, `scene_1_prompt` … `scene_10_prompt`, `scene_1_voice` … `scene_10_voice`, `image_model`, `voice`, `bg_music`. Placeholder-ul `intro_video` nu este definit implicit în `variables`; inspectorul trebuie să-l raporteze ca lipsă când nu e transmis. Aceasta este o stare a șablonului acceptată intenționat de utilizator, nu un defect de reparat prin modificarea fișierului original. Datele Sheets nu sunt injectate automat; Make trebuie să mapeze `variables`.
 
 Ideile de migrare deja formulate: POST cu API key prin Make HTTP v4; `Idempotency-Key` stabil pentru retry; `client-data` să transporte ID-ul și numărul rândului; continuare numai după `movie.status=done`; `error` se scrie în Sheets și oprește publicarea; webhook poate înlocui sleep/polling, cu deduplicare persistentă după `project`; păstrarea ramurilor sociale în Make; urmărește succesul fiecărei platforme separat. Acestea sunt recomandări documentate, **nu schimbări aplicate în contul Make**.

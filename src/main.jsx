@@ -1386,7 +1386,12 @@ function App() {
                     video clips is ignored, so add an explicit audio track.
                     HTML, JSON2Video components and transitions between scenes
                     aren't implemented. Fade-in/out, zoom and subtitles synced
-                    to the Azure voice are available. The local voice uses
+                    to the Azure voice are available. Subtitles can highlight
+                    the word being spoken (word-color), show a set number of
+                    words at a time (max-words), pop the active word
+                    (word-scale) and switch to capitals (all-caps). Text and
+                    subtitles can use the DejaVu Sans or Poppins font
+                    (font-family). The local voice uses
                     Windows or eSpeak NG, while provider: azure needs your Azure
                     keys on the server. Local subtitles need an explicit
                     timing: estimated (approximate). The limit is 900 seconds

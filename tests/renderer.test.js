@@ -292,3 +292,211 @@ test(
     );
   },
 );
+test(
+  "format vertical 9:16 și subtitrări karaoke: cuvântul evidențiat se mută",
+  { timeout: 120000 },
+  async () => {
+    const input = validateMovie({
+      name: "Karaoke vertical",
+      resolution: "sd",
+      "aspect-ratio": "9:16",
+      quality: "low",
+      scenes: [
+        {
+          duration: 3,
+          "background-color": "#000000",
+          elements: [
+            {
+              type: "subtitles",
+              text: "Alpha beta gamma delta epsilon zeta",
+              timing: "estimated",
+              "font-size": 44,
+              color: "#FFFFFF",
+              "word-color": "#FFD400",
+              "max-words": 3,
+              y: "40%",
+              style: "plain",
+            },
+          ],
+        },
+      ],
+    }).data;
+    const result = await renderMovie({ id: "bbbbbbbbbbbbbbbb", input }, () => {});
+    assert.equal(result.width, 360);
+    assert.equal(result.height, 640);
+    const yellowAt = async (second, name) => {
+      await runFfmpeg(
+        [
+          "-ss",
+          String(second),
+          "-i",
+          path.join(temp, "renders/bbbbbbbbbbbbbbbb.mp4"),
+          "-frames:v",
+          "1",
+          "-update",
+          "1",
+          name,
+        ],
+        temp,
+      );
+      const { data, info } = await sharp(path.join(temp, name))
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      let count = 0,
+        sumX = 0,
+        sumY = 0;
+      for (let y = 0; y < info.height; y++)
+        for (let x = 0; x < info.width; x++) {
+          const i = (y * info.width + x) * 3;
+          if (data[i] > 200 && data[i + 1] > 160 && data[i + 2] < 90) {
+            count++;
+            sumX += x;
+            sumY += y;
+          }
+        }
+      return { count, x: sumX / count, y: sumY / count };
+    };
+    const early = await yellowAt(0.15, "karaoke-a.png"),
+      late = await yellowAt(2.7, "karaoke-b.png");
+    assert.ok(early.count > 40, `early yellow pixels: ${early.count}`);
+    assert.ok(late.count > 40, `late yellow pixels: ${late.count}`);
+    assert.ok(
+      Math.abs(early.x - late.x) > 20 || Math.abs(early.y - late.y) > 20,
+      `highlight did not move: ${JSON.stringify({ early, late })}`,
+    );
+  },
+);
+test(
+  "font-family Poppins: titlul și subtitrările folosesc fontul inclus, nu cel implicit",
+  { timeout: 180000 },
+  async () => {
+    const make = (family) =>
+      validateMovie({
+        resolution: "sd",
+        "aspect-ratio": "9:16",
+        quality: "low",
+        scenes: [
+          {
+            duration: 1,
+            "background-color": "#000000",
+            elements: [
+              {
+                type: "text",
+                text: "Poppins test",
+                "font-size": 40,
+                y: "20%",
+                style: "plain",
+                "font-family": family,
+              },
+              {
+                type: "subtitles",
+                text: "Poppins test",
+                timing: "estimated",
+                "font-size": 40,
+                y: "70%",
+                style: "plain",
+                "font-family": family,
+              },
+            ],
+          },
+        ],
+      }).data;
+    const measured = {};
+    for (const [family, id] of [
+      ["DejaVu Sans", "dddddddddddddddd"],
+      ["Poppins", "eeeeeeeeeeeeeeee"],
+    ]) {
+      await renderMovie({ id, input: make(family) }, () => {});
+      const file = path.join(temp, `renders/${id}.mp4`);
+      await runFfmpeg(
+        ["-ss", "0.4", "-i", file, "-vf", "crop=360:128:0:64", "-frames:v", "1", "-update", "1", `title-${id}.png`],
+        temp,
+      );
+      await runFfmpeg(
+        ["-ss", "0.4", "-i", file, "-vf", "crop=360:128:0:416", "-frames:v", "1", "-update", "1", `subs-${id}.png`],
+        temp,
+      );
+      const box = async (name) => {
+        const { data, info } = await sharp(path.join(temp, name))
+          .removeAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        let min = info.width,
+          max = -1;
+        for (let y = 0; y < info.height; y++)
+          for (let x = 0; x < info.width; x++)
+            if (data[(y * info.width + x) * 3] > 200) {
+              min = Math.min(min, x);
+              max = Math.max(max, x);
+            }
+        return max - min + 1;
+      };
+      measured[family] = {
+        title: await box(`title-${id}.png`),
+        subs: await box(`subs-${id}.png`),
+      };
+    }
+    assert.ok(measured.Poppins.title > 20 && measured.Poppins.subs > 20);
+    assert.notEqual(
+      measured.Poppins.title,
+      measured["DejaVu Sans"].title,
+      `title still uses the default font: ${JSON.stringify(measured)}`,
+    );
+    assert.notEqual(
+      measured.Poppins.subs,
+      measured["DejaVu Sans"].subs,
+      `subtitles still use the default font: ${JSON.stringify(measured)}`,
+    );
+  },
+);
+test(
+  "J2V_SUBTITLES=png păstrează varianta veche și evidențiază tot cuvântul curent",
+  { timeout: 120000 },
+  async () => {
+    process.env.J2V_SUBTITLES = "png";
+    try {
+      const input = validateMovie({
+        resolution: "sd",
+        "aspect-ratio": "9:16",
+        quality: "low",
+        scenes: [
+          {
+            duration: 3,
+            "background-color": "#000000",
+            elements: [
+              {
+                type: "subtitles",
+                text: "Alpha beta gamma delta epsilon zeta",
+                timing: "estimated",
+                "font-size": 44,
+                "word-color": "#FFD400",
+                "word-scale": 1.2,
+                "max-words": 3,
+                y: "40%",
+                style: "plain",
+              },
+            ],
+          },
+        ],
+      }).data;
+      await renderMovie({ id: "ffffffffffffffff", input }, () => {});
+      const file = path.join(temp, "renders/ffffffffffffffff.mp4");
+      await runFfmpeg(
+        ["-ss", "0.15", "-i", file, "-frames:v", "1", "-update", "1", "png-engine.png"],
+        temp,
+      );
+      const { data, info } = await sharp(path.join(temp, "png-engine.png"))
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      let yellow = 0;
+      for (let i = 0; i < info.width * info.height; i++)
+        if (data[i * 3] > 200 && data[i * 3 + 1] > 160 && data[i * 3 + 2] < 90)
+          yellow++;
+      assert.ok(yellow > 40, `yellow pixels: ${yellow}`);
+    } finally {
+      delete process.env.J2V_SUBTITLES;
+    }
+  },
+);
