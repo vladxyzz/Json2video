@@ -12,6 +12,7 @@ import {
   localMode,
   publicUrl,
   outputDir,
+  workDir,
 } from "./config.js";
 import { validateMovie } from "../shared/schema.js";
 import { examples } from "../shared/examples.js";
@@ -154,7 +155,7 @@ app.post("/v2/movies", (req, res) => {
   if (key && key.length > 200)
     return res.status(400).json({
       success: false,
-      message: "Idempotency-Key poate avea maximum 200 caractere.",
+      message: "Idempotency-Key can be at most 200 characters long.",
     });
   const found = key ? store.findKey(key) : null;
   if (found) {
@@ -190,6 +191,26 @@ app.get("/v2/movies", (req, res) => {
   }
   const jobs = store.list();
   res.json({ success: true, movies: jobs.map(publicJob), count: jobs.length });
+});
+// Deleting a finished or failed render removes its record and its files.
+// A render that is queued or running is left alone so the worker never loses
+// the job it is busy with.
+app.delete("/api/movies/:id", async (req, res) => {
+  const id = String(req.params.id);
+  const job = /^[a-f0-9]{16}$/.test(id) ? store.get(id) : undefined;
+  if (!job)
+    return res.status(404).json({ message: "That video does not exist." });
+  if (!["done", "error"].includes(job.status))
+    return res.status(409).json({
+      message: "This video is still rendering. Delete it once it has finished.",
+    });
+  store.remove(id);
+  await Promise.all([
+    fs.promises.rm(path.join(outputDir, `${id}.mp4`), { force: true }),
+    fs.promises.rm(path.join(outputDir, `${id}.jpg`), { force: true }),
+    fs.promises.rm(path.join(workDir, id), { recursive: true, force: true }),
+  ]);
+  res.json({ success: true, project: id });
 });
 app.get("/api/movies/:id/source", (req, res) => {
   const job = store.get(req.params.id);
@@ -231,7 +252,7 @@ app.get("/files/:file", (req, res) => {
   res.sendFile(path.join(outputDir, req.params.file));
 });
 app.use(["/api", "/v2"], (_req, res) =>
-  res.status(404).json({ message: "Endpoint inexistent." }),
+  res.status(404).json({ message: "Endpoint not found." }),
 );
 if (built) {
   app.use(express.static(path.join(root, "dist")));

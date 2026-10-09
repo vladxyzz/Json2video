@@ -49,6 +49,7 @@ export const store = {
       hash,
     );
   },
+  remove: (id) => db.prepare("DELETE FROM jobs WHERE id=?").run(id).changes > 0,
   update(id, patch) {
     const job = this.get(id);
     const { input, created_at, status, ...result } = { ...job, ...patch };

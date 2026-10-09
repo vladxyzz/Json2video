@@ -319,3 +319,38 @@ test(
     assert.equal(failed.url, null);
   },
 );
+test(
+  "ștergerea unei randări elimină înregistrarea și fișierele, dar nu un job în lucru",
+  { timeout: 60000 },
+  async () => {
+    const files = path.join(temp, "renders");
+    const finished = "cccccccccccccccc";
+    await fs.writeFile(path.join(files, `${finished}.jpg`), "x");
+    assert.equal((await request("/api/movies/not-an-id", { method: "DELETE" })).status, 404);
+    assert.equal(
+      (await request("/api/movies/ffffffffffffffff", { method: "DELETE" })).status,
+      404,
+    );
+    assert.equal((await fetch(base + "/api/movies/" + finished, { method: "DELETE" })).status, 401);
+    const queued = (
+      await (
+        await request("/v2/movies", {
+          method: "POST",
+          body: JSON.stringify({
+            name: "Still going",
+            resolution: "sd",
+            scenes: [{ duration: 30, "background-color": "#101010" }],
+          }),
+        })
+      ).json()
+    ).project;
+    const early = await request("/api/movies/" + queued, { method: "DELETE" });
+    if (early.status === 409) assert.match((await early.json()).message, /still rendering/);
+    const removed = await request("/api/movies/" + finished, { method: "DELETE" });
+    assert.equal(removed.status, 200);
+    assert.equal((await request("/v2/movies?project=" + finished)).status, 404);
+    await assert.rejects(fs.access(path.join(files, `${finished}.mp4`)));
+    await assert.rejects(fs.access(path.join(files, `${finished}.jpg`)));
+    assert.equal((await request("/api/movies/" + finished, { method: "DELETE" })).status, 404);
+  },
+);

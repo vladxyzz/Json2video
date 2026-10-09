@@ -199,6 +199,24 @@ const doc = {
         },
       },
     },
+    "/api/movies/{id}": {
+      delete: {
+        summary: "Delete a finished or failed render and its files",
+        parameters: [
+          {
+            in: "path",
+            name: "id",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          200: { description: "Deleted" },
+          404: error,
+          409: error,
+        },
+      },
+    },
     "/api/movies/{id}/webhook/retry": {
       post: {
         summary: "Retry final webhook",

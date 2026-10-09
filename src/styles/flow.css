@@ -1,0 +1,316 @@
+/* The automation loop. One 11s cycle; every part waits for its turn with a delay. */
+.make-flow {
+  --cycle: 11s;
+  margin: 40px 0;
+  padding: 36px 28px 30px;
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(60% 90% at 50% 0%, var(--accent-wash), transparent 70%),
+    var(--panel);
+  box-shadow:
+    inset 0 0 0 1px var(--line),
+    var(--shadow-md);
+  container: flow / inline-size;
+}
+.flow-track {
+  display: flex;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flow-node {
+  position: relative;
+  flex: 0 0 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.flow-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 17px;
+  background: var(--panel-2);
+  box-shadow:
+    inset 0 0 0 1px var(--line-2),
+    var(--shadow-sm);
+  color: var(--ink);
+  animation: node-lit var(--cycle) var(--ease) infinite;
+  animation-delay: var(--d);
+}
+.flow-node strong {
+  font-size: 13px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.flow-node small {
+  max-width: 124px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.flow-node.sheets {
+  --d: 0s;
+}
+.flow-node.post {
+  --d: 1.6s;
+}
+.flow-node.app {
+  --d: 3.2s;
+}
+.flow-node.hook {
+  --d: 7s;
+}
+.flow-node.router {
+  --d: 8.4s;
+}
+.flow-node.app .flow-icon {
+  animation-name: node-lit-long;
+}
+.flow-render {
+  width: 72px;
+  height: 4px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--line);
+}
+.flow-render i {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: render-fill var(--cycle) linear infinite;
+  animation-delay: 3.4s;
+}
+.flow-channels {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.flow-channels em {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 11.5px;
+  font-style: normal;
+  color: var(--muted);
+  animation: chip-lit var(--cycle) var(--ease) infinite;
+  animation-delay: calc(8.9s + var(--k) * 0.4s);
+}
+.flow-link {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 36px;
+  height: 56px;
+  container-type: inline-size;
+}
+.flow-link::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 28px;
+  height: 0;
+  border-top: 1.5px dashed var(--line-2);
+}
+.flow-link:nth-child(2) {
+  --d: 0.6s;
+}
+.flow-link:nth-child(4) {
+  --d: 2.2s;
+}
+.flow-link:nth-child(6) {
+  --d: 6s;
+}
+.flow-link:nth-child(8) {
+  --d: 7.6s;
+}
+.flow-packet {
+  position: absolute;
+  left: 0;
+  top: 17px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--on-lime);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  box-shadow: 0 8px 14px -8px rgb(60 100 10 / 0.6);
+  animation: packet var(--cycle) var(--ease) infinite;
+  animation-delay: var(--d);
+}
+
+@keyframes node-lit {
+  0%,
+  16%,
+  100% {
+    background: var(--panel-2);
+    color: var(--ink);
+    transform: none;
+  }
+  3%,
+  11% {
+    background: var(--lime);
+    color: var(--on-lime);
+    transform: translateY(-4px) scale(1.06);
+  }
+}
+@keyframes node-lit-long {
+  0%,
+  32%,
+  100% {
+    background: var(--panel-2);
+    color: var(--ink);
+    transform: none;
+  }
+  3%,
+  28% {
+    background: var(--lime);
+    color: var(--on-lime);
+    transform: translateY(-4px) scale(1.06);
+  }
+}
+@keyframes render-fill {
+  0% {
+    transform: scaleX(0);
+  }
+  26% {
+    transform: scaleX(1);
+  }
+  33% {
+    transform: scaleX(1);
+  }
+  34%,
+  100% {
+    transform: scaleX(0);
+  }
+}
+@keyframes chip-lit {
+  0%,
+  10%,
+  100% {
+    background: var(--panel-2);
+    color: var(--muted);
+  }
+  2%,
+  8% {
+    background: var(--lime);
+    color: var(--on-lime);
+  }
+}
+@keyframes packet {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  11% {
+    opacity: 1;
+    translate: calc(100cqw - 100%) 0;
+  }
+  13%,
+  100% {
+    opacity: 0;
+    translate: calc(100cqw - 100%) 0;
+  }
+}
+@keyframes packet-y {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  11% {
+    opacity: 1;
+    translate: 0 28px;
+  }
+  13%,
+  100% {
+    opacity: 0;
+    translate: 0 28px;
+  }
+}
+
+/* Narrow screens: the same story, top to bottom. */
+@container flow (max-width: 760px) {
+  .flow-track {
+    flex-direction: column;
+    align-items: stretch;
+    padding-left: 12px;
+  }
+  .flow-node {
+    flex: none;
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: center;
+    justify-items: start;
+    column-gap: 16px;
+    row-gap: 2px;
+    text-align: left;
+  }
+  .flow-node .flow-icon {
+    grid-row: span 2;
+  }
+  .flow-node small {
+    max-width: none;
+  }
+  .flow-node.app .flow-render {
+    grid-column: 2;
+  }
+  .flow-node.router .flow-channels {
+    grid-column: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .flow-link {
+    flex: none;
+    width: 56px;
+    height: 44px;
+  }
+  .flow-link::before {
+    left: 28px;
+    right: auto;
+    top: 2px;
+    bottom: 2px;
+    height: auto;
+    border-top: 0;
+    border-left: 1.5px dashed var(--line-2);
+  }
+  .flow-packet {
+    left: 28px;
+    top: 0;
+    translate: -50% 0;
+    animation-name: packet-y;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-node.app .flow-icon {
+    background: var(--lime);
+    color: var(--on-lime);
+  }
+  .flow-render i {
+    transform: scaleX(1);
+  }
+  .flow-packet {
+    opacity: 1;
+    position: static;
+    display: inline-block;
+    margin-top: 12px;
+  }
+}

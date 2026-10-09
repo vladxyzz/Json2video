@@ -84,6 +84,7 @@ Inspecția fiecărui nod, mapările exacte și planul de migrare: [scenariul tă
 | `POST /api/inspect` | Variabile definite/lipsă și numărul elementelor, fără interpolare |
 | `GET /api/movies/ID/source` | JSON-ul jobului |
 | `POST /api/movies/ID/webhook/retry` | Reprogramează notificarea |
+| `DELETE /api/movies/ID` | Șterge o randare terminată sau eșuată și fișierele ei (409 dacă încă se randează) |
 | `GET /healthz` | Verificare simplă de disponibilitate |
 
 Toate endpointurile de lucru cer `x-api-key`. `Idempotency-Key` pe POST previne duplicarea pentru același payload normalizat; același ID cu alt conținut returnează 409. Succesul POST înseamnă acceptare, nu finalizarea randării. Erori de validare: 422. Lipsă cheie: 401. Job necunoscut: 404. Coada plină: 429.

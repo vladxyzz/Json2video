@@ -1,0 +1,374 @@
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/bricolage-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/bricolage-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Tokens. One palette, two lightings: `color-scheme` follows the OS until the
+   user picks Light or Dark, which sets data-theme on <html>. */
+:root {
+  color-scheme: light dark;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --lime: #c6f36b;
+  --on-lime: #12200a;
+  --canvas: light-dark(#f2f4f0, #090d0c);
+  --panel: light-dark(#ffffff, #0f1513);
+  --panel-2: light-dark(#f7f9f5, #131a18);
+  --sunken: light-dark(#eceFEA, #0b100f);
+  --line: light-dark(#e3e8e1, #1c2623);
+  --line-2: light-dark(#d3dad2, #2a3733);
+  --ink: light-dark(#0f1612, #eaf1ec);
+  --muted: light-dark(#56635b, #95a39b);
+  --accent-ink: light-dark(#376012, #c6f36b);
+  --accent-wash: light-dark(#e8f4cd, #17220f);
+  --focus: light-dark(#3a7a10, #c6f36b);
+
+  --ok-fg: light-dark(#2d5a0a, #c6f36b);
+  --ok-bg: light-dark(#e3f1c8, #1b2a10);
+  --run-fg: light-dark(#6e4b00, #f4c95d);
+  --run-bg: light-dark(#f8ecc5, #2a2310);
+  --bad-fg: light-dark(#a02c16, #ffa68e);
+  --bad-bg: light-dark(#fbe6df, #2c1713);
+  --wait-bg: var(--panel-2);
+
+  --shadow-tint: light-dark(rgb(20 40 25 / 0.16), rgb(0 0 0 / 0.55));
+  --shadow-sm: 0 1px 2px light-dark(rgb(20 40 25 / 0.06), rgb(0 0 0 / 0.4));
+  --shadow-md: 0 1px 2px light-dark(rgb(20 40 25 / 0.05), rgb(0 0 0 / 0.4)),
+    0 14px 30px -14px var(--shadow-tint);
+  --shadow-lg: 0 2px 4px light-dark(rgb(20 40 25 / 0.05), rgb(0 0 0 / 0.4)),
+    0 32px 60px -28px var(--shadow-tint);
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+
+  /* editor */
+  --code-bg: light-dark(#fafbf8, #0c1110);
+  --gutter-bg: light-dark(#f3f6f0, #0e1413);
+  --tk-key: light-dark(#1f3d2c, #dce8df);
+  --tk-str: light-dark(#3b6a12, #a3d6a9);
+  --tk-num: light-dark(#a64f17, #f1b57e);
+  --tk-lit: light-dark(#a1362a, #f2897a);
+  --tk-punct: light-dark(#8a968e, #5d6b64);
+  --tk-var-bg: light-dark(#e3f2c3, #20301a);
+  --tk-var-fg: light-dark(#2f5d0a, #c6f36b);
+  --stage: light-dark(
+    linear-gradient(160deg, #eef1ec 0%, #e1e8de 100%),
+    radial-gradient(120% 90% at 50% 30%, #17211e 0%, #0a0f0e 70%)
+  );
+  --editor-height: clamp(460px, calc(100dvh - 350px), 760px);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  background: var(--canvas);
+}
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--canvas);
+  font-synthesis: none;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  border: 0;
+  background: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+a {
+  color: inherit;
+}
+h1,
+h2,
+p {
+  margin: 0;
+}
+h1,
+h2 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+}
+p {
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+code,
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.87em;
+  overflow-wrap: anywhere;
+}
+button svg,
+a svg {
+  flex-shrink: 0;
+}
+::selection {
+  background: var(--lime);
+  color: var(--on-lime);
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+input:focus-visible,
+textarea:focus-visible {
+  outline-offset: -2px;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 9px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: -100px;
+  z-index: 100;
+  background: var(--lime);
+  color: var(--on-lime);
+  padding: 12px 20px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+/* Buttons */
+.primary,
+.secondary,
+.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    transform 0.25s var(--ease),
+    background 0.2s,
+    box-shadow 0.25s var(--ease);
+}
+.primary {
+  background: var(--lime);
+  color: var(--on-lime);
+  box-shadow:
+    inset 0 -2px 0 rgb(0 0 0 / 0.12),
+    0 10px 20px -12px light-dark(rgb(80 120 20 / 0.7), rgb(198 243 107 / 0.35));
+}
+.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #d1f883;
+}
+.primary:active:not(:disabled),
+.secondary:active:not(:disabled),
+.danger:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+.secondary {
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow:
+    inset 0 0 0 1px var(--line-2),
+    var(--shadow-sm);
+}
+.secondary:hover {
+  background: var(--panel-2);
+}
+.danger {
+  background: light-dark(#c23a24, #ff9a84);
+  color: light-dark(#ffffff, #2a0e08);
+}
+.danger:hover {
+  filter: brightness(1.06);
+}
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.ghost:hover {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--muted);
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.25s var(--ease);
+}
+.icon-button:hover:not(:disabled) {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+.icon-button.delete:hover:not(:disabled) {
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+.spin {
+  animation: spin 1.2s linear infinite;
+}
+
+/* Motion primitives */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px) scale(0.96);
+  }
+}
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* View transitions: pages crossfade, a theme change ripples out from its button. */
+html[data-vt="view"]::view-transition-old(root) {
+  animation: vt-out 0.22s ease both;
+}
+html[data-vt="view"]::view-transition-new(root) {
+  animation: vt-in 0.5s var(--ease) both;
+}
+html[data-vt="view"] .sidebar {
+  view-transition-name: sidebar;
+}
+html[data-vt="view"] .topbar {
+  view-transition-name: topbar;
+}
+html[data-vt="theme"]::view-transition-old(root) {
+  animation: none;
+  z-index: 1;
+}
+html[data-vt="theme"]::view-transition-new(root) {
+  z-index: 2;
+  animation: ripple 0.85s var(--ease) both;
+}
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes ripple {
+  from {
+    clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 0));
+  }
+  to {
+    clip-path: circle(150vmax at var(--vt-x, 50%) var(--vt-y, 0));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
